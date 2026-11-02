@@ -28,11 +28,19 @@ import {
   WhatsappIcon,
   WhatsappShareButton,
 } from 'react-share'
-import Slider from "react-slick";
+import CustomSlider from "components/common/CustomSlider";
 import {useTheme} from "@mui/styles";
 import {useTranslation} from "react-i18next";
 import {t} from "i18next";
-import {shareSettings} from "components/store-details/shareSettings";
+
+// react-slick breakpoint:X meant "apply for width <= X" (descending); these
+// Swiper breakpoints mean "apply for width >= X" (ascending) - shifted by +1.
+const SHARE_BREAKPOINTS = {
+  421: { slidesPerView: 6 },
+  480: { slidesPerView: 7 },
+  1025: { slidesPerView: 8 },
+  1451: { slidesPerView: 9 },
+};
 
 const StoreShare = (props) => {
   const {openShareModal,setOpenShareModal,handleCopy}=props
@@ -108,71 +116,102 @@ const StoreShare = (props) => {
         </Stack>
         <Stack marginTop=".5rem">
           <SliderCustom nopadding="true">
-            <Slider {...shareSettings}>
-              <FacebookMessengerShareButton
-                url={currentRoute}
-                appId={FACEBOOK_APP_ID}
-              >
-                <FacebookMessengerIcon
-                  size={size ? size : 40}
-                  round
-                />
-              </FacebookMessengerShareButton>
-              <TwitterShareButton url={currentRoute}>
-                <TwitterIcon
-                  size={size ? size : 40}
-                  round
-                />
-              </TwitterShareButton>
-              <WhatsappShareButton
-                url={currentRoute}
-                separator=":: "
-              >
-                <WhatsappIcon
-                  size={size ? size : 40}
-                  round
-                />
-              </WhatsappShareButton>
-              <LinkedinShareButton
-                url={currentRoute}
-                source={currentRoute}
-              >
-                <LinkedinIcon
-                  size={size ? size : 40}
-                  round
-                />
-              </LinkedinShareButton>
-              <TelegramShareButton url={currentRoute}>
-                <TelegramIcon
-                  size={size ? size : 40}
-                  round
-                />
-              </TelegramShareButton>
-              <EmailShareButton url={currentRoute}>
-                <EmailIcon size={size ? size : 40} round />
-              </EmailShareButton>
-              <RedditShareButton
-                url={currentRoute}
-                windowWidth={660}
-                windowHeight={460}
-              >
-                <RedditIcon size={size ? size : 40} round />
-              </RedditShareButton>
-              <TumblrShareButton
-                url={String(window.location.origin)}
-              >
-                <TumblrIcon size={size ? size : 40} round />
-              </TumblrShareButton>
-              <LivejournalShareButton url={currentRoute}>
-                <LivejournalIcon
-                  size={size ? size : 40}
-                  round
-                />
-              </LivejournalShareButton>
-              <LineShareButton url={currentRoute}>
-                <LineIcon size={size ? size : 40} round />
-              </LineShareButton>
-            </Slider>
+            <CustomSlider
+              items={[
+                "facebookMessenger",
+                "twitter",
+                "whatsapp",
+                "linkedin",
+                "telegram",
+                "email",
+                "reddit",
+                "tumblr",
+                "livejournal",
+                "line",
+              ]}
+              getKey={(key) => key}
+              renderItem={(key) => {
+                switch (key) {
+                  case "facebookMessenger":
+                    return (
+                      <FacebookMessengerShareButton
+                        url={currentRoute}
+                        appId={FACEBOOK_APP_ID}
+                      >
+                        <FacebookMessengerIcon size={size ? size : 40} round />
+                      </FacebookMessengerShareButton>
+                    );
+                  case "twitter":
+                    return (
+                      <TwitterShareButton url={currentRoute}>
+                        <TwitterIcon size={size ? size : 40} round />
+                      </TwitterShareButton>
+                    );
+                  case "whatsapp":
+                    return (
+                      <WhatsappShareButton url={currentRoute} separator=":: ">
+                        <WhatsappIcon size={size ? size : 40} round />
+                      </WhatsappShareButton>
+                    );
+                  case "linkedin":
+                    return (
+                      <LinkedinShareButton
+                        url={currentRoute}
+                        source={currentRoute}
+                      >
+                        <LinkedinIcon size={size ? size : 40} round />
+                      </LinkedinShareButton>
+                    );
+                  case "telegram":
+                    return (
+                      <TelegramShareButton url={currentRoute}>
+                        <TelegramIcon size={size ? size : 40} round />
+                      </TelegramShareButton>
+                    );
+                  case "email":
+                    return (
+                      <EmailShareButton url={currentRoute}>
+                        <EmailIcon size={size ? size : 40} round />
+                      </EmailShareButton>
+                    );
+                  case "reddit":
+                    return (
+                      <RedditShareButton
+                        url={currentRoute}
+                        windowWidth={660}
+                        windowHeight={460}
+                      >
+                        <RedditIcon size={size ? size : 40} round />
+                      </RedditShareButton>
+                    );
+                  case "tumblr":
+                    return (
+                      <TumblrShareButton url={String(window.location.origin)}>
+                        <TumblrIcon size={size ? size : 40} round />
+                      </TumblrShareButton>
+                    );
+                  case "livejournal":
+                    return (
+                      <LivejournalShareButton url={currentRoute}>
+                        <LivejournalIcon size={size ? size : 40} round />
+                      </LivejournalShareButton>
+                    );
+                  case "line":
+                    return (
+                      <LineShareButton url={currentRoute}>
+                        <LineIcon size={size ? size : 40} round />
+                      </LineShareButton>
+                    );
+                  default:
+                    return null;
+                }
+              }}
+              arrowVariant="inline"
+              stretchItems={false}
+              slidesPerView={5}
+              spaceBetween={12}
+              breakpoints={SHARE_BREAKPOINTS}
+            />
           </SliderCustom>
         </Stack>
       </CustomStackFullWidth>

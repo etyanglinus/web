@@ -1,15 +1,12 @@
-import { useMutation } from "react-query";
-import MainApi from "api-manage/MainApi";
-import {
-  comfirm_booking,
-  make_payment,
-} from "components/home/module-wise-components/rental/rental-api-manage/ApiRoutes";
-
-const addData = async (postData) => {
-  const { data } = await MainApi.post(make_payment, postData);
-  return data;
-};
-
-export default function useMakePayment() {
-  return useMutation("make_payment", addData);
+// Placeholder — real hook shipped with the Rental addon.
+export default function useMakePayment(..._args) {
+  return {
+    mutate: (..._a) => {},
+    mutateAsync: async (..._a) => {},
+    reset: () => {},
+    data: undefined,
+    error: null,
+    isLoading: false,
+    isPending: false,
+  };
 }

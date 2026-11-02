@@ -2,6 +2,7 @@ import React, { useEffect, useReducer, useState } from "react";
 import {
   Grid,
   IconButton,
+  Skeleton,
   Stack,
   Typography,
   useMediaQuery,
@@ -85,7 +86,7 @@ const AddAddressComponent = ({
 
   useEffect(() => {
     if (places) {
-      const tempData= places?.suggestions?.map((item) => ({
+      const tempData = places?.suggestions?.map((item) => ({
         place_id: item?.placePrediction?.placeId,
         description: `${item?.placePrediction?.structuredFormat?.mainText?.text}, ${item?.placePrediction?.structuredFormat?.secondaryText?.text}`,
       }));
@@ -137,34 +138,44 @@ const AddAddressComponent = ({
     }
     setPlaceDetailsEnabled(true);
   };
+  const [zoomToLocationToken, setZoomToLocationToken] = useState(0);
   const getCurrentLocation = () => {
     setLocation({ lat: coords.latitude, lng: coords.longitude });
+    setZoomToLocationToken((prev) => prev + 1);
   };
 
   return (
-    <>
-      <Grid item md={12} xs={12} alignSelf="center">
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
+    <CustomStackFullWidth
+      padding={{ xs: "10px", sm: "15px", md: "20px" }}
+      spacing={2}
+    >
+      <CustomStackFullWidth
+        justifyContent="space-between"
+        direction="row"
+        alignItems="center"
+      >
+        <Typography
+          fontSize={{ xs: "14px", sm: "14px", md: "16px" }}
+          fontWeight="700"
         >
-          <Typography variant="subtitle2" fontWeight="700">
-            {t("Add Address")}
-          </Typography>
+          {t("Add Address")}
+        </Typography>
+
+        <Stack>
           <BackIconButton onClick={() => setAddAddress(false)}>
-            <ArrowBackIosNewIcon
-              sx={{
-                fontSize: "10px",
-                color: (theme) => theme.palette.primary.main,
-                fontWeight: "700",
-                marginRight: "3px",
+            <i
+              className="fi fi-rr-arrow-small-left"
+              style={{
+                fontSize: "16px",
+                lineHeight: 1,
+                display: "flex",
+                paddingRight: "3px",
               }}
             />
             {t("Go Back")}
           </BackIconButton>
         </Stack>
-      </Grid>
+      </CustomStackFullWidth>
       <Grid item xs={12} md={5} position="relative" align="center">
         <AddAddressSearchBox>
           <CustomMapSearch
@@ -178,10 +189,11 @@ const AddAddressComponent = ({
             handleAgreeLocation={() => handleAgreeLocation(coords, dispatch)}
             currentLocation={state.currentLocation}
             handleCloseLocation={() => handleCloseLocation(dispatch)}
+            notShow
           />
         </AddAddressSearchBox>
         <Stack>
-          {location && (
+          {location ? (
             <GoogleMapComponent
               setLocation={setLocation}
               location={location}
@@ -192,13 +204,21 @@ const AddAddressComponent = ({
               setLocationEnabled={setLocationEnabled}
               setDisablePickButton={setDisablePickButton}
               height="350px"
+              zoomToLocationToken={zoomToLocationToken}
+            />
+          ) : (
+            <Skeleton
+              variant="rectangular"
+              width="100%"
+              height="350px"
+              sx={{ borderRadius: "10px" }}
             />
           )}
           <IconButton
             onClick={getCurrentLocation}
             sx={{
               position: "absolute",
-              bottom: "25%",
+              bottom: { xs: "18%", md: "32%" },
               right: "10px",
               borderRadius: "50%",
               color: (theme) => theme.palette.primary.main,
@@ -258,7 +278,7 @@ const AddAddressComponent = ({
           </Stack>
         </CustomStackFullWidth>
         <AddressForm
-          deliveryAddress={geoCodeResults?.results[0]?.formatted_address}
+          deliveryAddress={geoCodeResults?.results?.[0]?.formatted_address}
           atModal="false"
           addressType={addressType}
           configData={configData}
@@ -276,7 +296,7 @@ const AddAddressComponent = ({
           refetch={addressRefetch}
         />
       </Grid>
-    </>
+    </CustomStackFullWidth>
   );
 };
 

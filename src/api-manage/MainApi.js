@@ -1,5 +1,12 @@
 import axios from "axios";
-export const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+// NEXT_PUBLIC_BASE_URL may or may not carry a trailing slash. Axios normalises
+// that when joining baseURL + path, but every server-side `${baseUrl}${path}`
+// template does not — it yields `host//api/v1/...`, which the API answers with
+// a 404. Strip it once here so both styles are safe.
+export const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || "").replace(
+  /\/+$/,
+  "",
+);
 const MainApi = axios.create({
   baseURL: baseUrl,
 });
@@ -8,7 +15,6 @@ MainApi.interceptors.request.use(function (config) {
   let token = undefined;
   let language = undefined;
   let currentLocation = undefined;
-  let software_id = 33571750;
   let hostname = process.env.NEXT_CLIENT_HOST_URL;
   let moduleid = undefined;
 
@@ -19,30 +25,49 @@ MainApi.interceptors.request.use(function (config) {
     currentLocation = JSON.parse(localStorage.getItem("currentLatLng"));
     moduleid = JSON.parse(localStorage.getItem("module"))?.id;
   }
-  if (currentLocation) config.headers.latitude = currentLocation.lat;
-  if (currentLocation) config.headers.longitude = currentLocation.lng;
-  if (zoneid) config.headers.zoneid = zoneid;
-  if (moduleid) config.headers.moduleId = moduleid;
+  config.headers.latitude = currentLocation?.lat || 0;
+  config.headers.longitude = currentLocation?.lng || 0;
+  const zoneidIsValid =
+    zoneid &&
+    zoneid !== "undefined" &&
+    zoneid !== "null" &&
+    !/nan/i.test(zoneid) &&
+    (() => {
+      try {
+        const parsed = JSON.parse(zoneid);
+        return (
+          Array.isArray(parsed) &&
+          parsed.length > 0 &&
+          parsed.every((id) => !Number.isNaN(Number(id)))
+        );
+      } catch {
+        return false;
+      }
+    })();
+  if (zoneidIsValid) {
+    config.headers.zoneid = zoneid;
+  }
+  if (moduleid && !config.headers.moduleId) config.headers.moduleId = moduleid;
   if (token) config.headers.authorization = `Bearer ${token}`;
   if (language) config.headers["X-localization"] = language;
   if (hostname) config.headers["origin"] = hostname;
-  config.headers["X-software-id"] = software_id;
-  config.headers["Accept"] = 'application/json'
+  config.headers["Accept"] = "application/json";
   config.headers["ngrok-skip-browser-warning"] = true;
   return config;
 });
-// MainApi.interceptors.response.use(
-//     (response) => response,
-//     (error) => {
-//         if (error.response.status === 401) {
-//             toast.error(t('Your token has been expired.please sign in again'), {
-//                 id: 'error',
-//             })
-//             localStorage.removeItem('token')
-//             store.dispatch(removeToken())
-//         }
-//         return Promise.reject(error)
-//     }
-// )
+MainApi.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+    const message =
+      error?.response?.data?.message ||
+      error?.response?.data?.error ||
+      error?.response?.data?.errors?.[0]?.message;
+    // if (typeof window !== "undefined" && status === 422 ) { // probably this logic was used for demo service after one hour the data is reset
+    //   window.location.href = "/";
+    // }
+    return Promise.reject(error);
+  },
+);
 
 export default MainApi;

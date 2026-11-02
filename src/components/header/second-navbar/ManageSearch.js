@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import CustomSearch from "../../custom-search/CustomSearch";
-import { useRouter } from "next/navigation";
+import useAnimatedSearchPlaceholder from "hooks/useAnimatedSearchPlaceholder";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import SearchSuggestionsBottom from "../../search/SearchSuggestionsBottom";
 import { t } from "i18next";
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
-import { ModuleTypes } from "helper-functions/moduleTypes";
-import { alpha } from "@mui/material";
+import { saveRecentSearch } from "utils/recentSearchStorage";
+import { useTheme } from "@mui/material";
 import useGetItemOrStore from "../../../api-manage/hooks/react-query/search/useGetItemOrStore";
 import { removeSpecialCharacters } from "utils/CustomFunctions";
 
@@ -17,17 +18,25 @@ const ManageSearch = ({
   name,
   query,
   currentTab,
+  searchFromNav = false,
 }) => {
+  const theme = useTheme();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const [openSearchSuggestions, setOpenSearchSuggestions] = useState(false);
   const [selectedValue, setSelectedValue] = useState("");
   const [onSearchdiv, setOnSearchdiv] = useState(false);
   const [d_type, setD_type] = useState(null);
-  const [isEmpty, setIsEmpty] = useState(true);
+  const [isEmpty, setIsEmpty] = useState(!searchQuery);
+  const isFocused = useRef(false);
+  const isClearing = useRef(false);
   const [searchValue, setSearchValue] = useState("");
   useEffect(() => {
-    if (searchQuery === undefined) {
+    if (searchQuery !== undefined) {
+      setSearchValue(searchQuery);
+    } else {
       setSearchValue("");
     }
   }, [searchQuery]);
@@ -42,43 +51,55 @@ const ManageSearch = ({
   const handleKeyPress = (value, remove) => {
     if (value !== "") {
       setOpenSearchSuggestions(false);
-      let getItem = JSON.parse(localStorage.getItem("searchedValues")) || [];
+      saveRecentSearch(value);
 
-      if (value && !getItem.includes(value)) {
-        getItem.push(value);
-        localStorage.setItem("searchedValues", JSON.stringify(getItem));
-      }
-
+      const currentModule =
+        searchParams?.get("module") || query?.module || getCurrentModuleType();
+      // Searching always switches to data_type=searched, but keep brand_id from
+      // the live URL so the search stays scoped to the brand (brand_ids -> API).
+      const brandId = searchParams?.get("brand_id") || query?.brand_id;
       const newQuery = {
         ...query, // Retain existing query parameters
+        ...(currentModule ? { module: currentModule } : {}),
+        ...(brandId ? { brand_id: brandId } : {}),
         search: value,
         data_type: "searched",
       };
 
-      router.replace(
-        {
-          pathname: router.pathname,
-          query: newQuery,
-        },
-        undefined,
-        { shallow: true }
-      );
+      router.push({
+        pathname: "/search",
+        query: newQuery,
+      });
     } else {
+      setOpenSearchSuggestions(false);
       if (remove === "true" && searchQuery) {
-        const newQuery = {
-          ...query, // Retain existing query parameters
-          search: value,
-          data_type: d_type,
-        };
-
-        router.replace(
-          {
-            pathname: router.pathname,
-            query: newQuery,
-          },
-          undefined,
-          { shallow: true }
-        );
+        isClearing.current = true;
+        const currentModule =
+          searchParams?.get("module") ||
+          query?.module ||
+          getCurrentModuleType();
+        const brandId = searchParams?.get("brand_id") || query?.brand_id;
+        if (brandId) {
+          // On a brand's page, clearing the search keeps the user scoped to
+          // that brand's products instead of leaving the page.
+          router.push(
+            {
+              pathname: "/search",
+              query: {
+                ...(currentModule ? { module: currentModule } : {}),
+                brand_id: brandId,
+                data_type: "brand",
+              },
+            },
+            undefined,
+            { shallow: true },
+          );
+        } else {
+          router.push({
+            pathname: "/home",
+            query: currentModule ? { module: currentModule } : {},
+          });
+        }
       } else {
         setSearchValue("");
       }
@@ -107,26 +128,35 @@ const ManageSearch = ({
 
   useEffect(() => {
     getSearchSuggestions();
+    if (isFocused.current && searchValue === "" && !isClearing.current) {
+      setIsEmpty(true);
+      setOpenSearchSuggestions(true);
+    }
+    if (isClearing.current) {
+      isClearing.current = false;
+    }
   }, [searchValue]);
 
   useEffect(() => {
+    if (!isFocused.current) return;
     if (itemOrStoreSuggestionData) {
       if (
         itemOrStoreSuggestionData?.items?.length === 0 &&
         itemOrStoreSuggestionData?.stores?.length === 0
       ) {
-        setOpenSearchSuggestions(false);
+        if (!searchValue) setOpenSearchSuggestions(false);
       } else {
         setOpenSearchSuggestions(true);
       }
     }
   }, [itemOrStoreSuggestionData?.items, itemOrStoreSuggestionData?.stores]);
+
+  useEffect(() => {
+    setOpenSearchSuggestions(false);
+  }, [pathname, searchParams?.toString()]);
   const handleOnFocus = () => {
-    if (searchValue === "") {
-      setIsEmpty(true);
-    } else {
-      setIsEmpty(false);
-    }
+    isFocused.current = true;
+    setIsEmpty(searchValue === "");
     setOpenSearchSuggestions(true);
     localStorage.setItem("bg", true);
   };
@@ -134,6 +164,7 @@ const ManageSearch = ({
   useEffect(() => {
     function handleClickOutside(event) {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
+        isFocused.current = false;
         setOpenSearchSuggestions(false);
         setIsEmpty(true);
       }
@@ -147,51 +178,52 @@ const ManageSearch = ({
     };
   }, [searchRef]);
 
-  const dynamicLabel = () => {
-    if (getCurrentModuleType() === ModuleTypes.GROCERY) {
-      return `Search for grocery or store...`;
-    }
-    if (getCurrentModuleType() === ModuleTypes.PHARMACY) {
-      return `Search for medicine or store...`;
-    }
-    if (getCurrentModuleType() === ModuleTypes.ECOMMERCE) {
-      return `Search for products or store...`;
-    }
-  };
+  // Cycling "Search for <noun>" placeholder. The hook only reaches for the
+  // category list when the persisted store has none, so this costs no request
+  // on a warm load.
+  const { currentNoun, visible: phVisible } = useAnimatedSearchPlaceholder();
+
+  const richPlaceholder = (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        maxWidth: "100%",
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+      }}
+    >
+      {t("Search for")}&nbsp;
+      <span
+        style={{
+          fontWeight: 700,
+          color: theme.palette.neutral[1050],
+          display: "inline-block",
+          maxWidth: "100%",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          opacity: phVisible ? 1 : 0,
+          transform: phVisible ? "translateY(0)" : "translateY(-5px)",
+          transition: "opacity 0.28s ease, transform 0.28s ease",
+        }}
+      >
+        &ldquo;{currentNoun}&rdquo;
+      </span>
+    </span>
+  );
 
   const getModuleWiseSearch = () => {
-    if (getCurrentModuleType() === ModuleTypes.FOOD) {
-      return (
-        <Box
-          sx={{
-            backgroundColor: (theme) =>
-              alpha(theme.palette.moduleTheme.food, 0.4),
-            padding: { xs: "8px", md: "16px" },
-            borderRadius: "2px",
-          }}
-        >
-          <CustomSearch
-            label={t("Search foods and restaurants...")}
-            handleSearchResult={handleKeyPress}
-            selectedValue={searchQuery}
-            setIsEmpty={setIsEmpty}
-            handleOnFocus={handleOnFocus}
-            setSearchValue={setSearchValue}
-          />
-        </Box>
-      );
-    } else {
-      return (
-        <CustomSearch
-          label={t(dynamicLabel())}
-          handleSearchResult={handleKeyPress}
-          selectedValue={searchQuery}
-          setIsEmpty={setIsEmpty}
-          handleOnFocus={handleOnFocus}
-          setSearchValue={setSearchValue}
-        />
-      );
-    }
+    return (
+      <CustomSearch
+        richPlaceholder={richPlaceholder}
+        label=""
+        handleSearchResult={handleKeyPress}
+        selectedValue={searchQuery}
+        setIsEmpty={setIsEmpty}
+        handleOnFocus={handleOnFocus}
+        setSearchValue={setSearchValue}
+      />
+    );
   };
 
   return (
@@ -199,16 +231,18 @@ const ManageSearch = ({
       sx={{
         position: "relative",
         width: "100%",
-        maxWidth: {
-          xs: fullWidth ? "100%" : "300px",
-          sm: "440px",
-          md: "600px",
-        },
+        maxWidth: fullWidth
+          ? "100%"
+          : {
+              xs: "300px",
+              sm: "440px",
+              md: "600px",
+            },
       }}
       onFocus={() => handleOnFocus()}
       ref={searchRef}
     >
-      {zoneid && router.pathname !== "/" && (
+      {router.pathname !== "/" && (
         <>
           {getModuleWiseSearch()}
           {openSearchSuggestions && (
@@ -223,6 +257,7 @@ const ManageSearch = ({
               isRefetchingItemOrStoreSuggestion={
                 isRefetchingItemOrStoreSuggestion
               }
+              searchFromNav={searchFromNav}
             />
           )}
         </>

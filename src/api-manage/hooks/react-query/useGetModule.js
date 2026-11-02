@@ -1,16 +1,108 @@
 import MainApi from "../../MainApi";
 import { useQuery } from "react-query";
 import { moduleList } from "../../ApiRoutes";
+import { getApiList } from "../../getApiContent";
 import { onErrorResponse } from "../../api-error-response/ErrorResponses";
+import { useEffect, useRef, useState } from "react";
+import { filterOutRiderShareModules } from "helper-functions/moduleFilter";
+
+const injectServiceModule = (data) => {
+  if (!Array.isArray(data)) return data;
+
+  const hasService = data.some((m) => m?.module_type === "service");
+  if (hasService) return data;
+
+  const activeZones = data[0]?.zones || [];
+
+  return [...data];
+};
 
 const getModule = async () => {
   const { data } = await MainApi.get(moduleList);
-  return data;
+  // return filterOutRiderShareModules(data);
+  // return data;
+  return injectServiceModule(getApiList(data));
+};
+
+const normalizeZoneIdForKey = (zoneId) => {
+  if (
+    !zoneId ||
+    zoneId === "undefined" ||
+    zoneId === "null" ||
+    /nan/i.test(zoneId)
+  )
+    return null;
+
+  try {
+    const parsed = JSON.parse(zoneId);
+    if (Array.isArray(parsed)) {
+      const ids = parsed
+        .map((item) => Number(item))
+        .filter((item) => Number.isFinite(item));
+      return ids.length > 0 ? JSON.stringify(ids) : null;
+    }
+    const asNumber = Number(parsed);
+    return Number.isFinite(asNumber) ? JSON.stringify([asNumber]) : null;
+  } catch {
+    const trimmed = String(zoneId).trim();
+    const asNumber = Number(trimmed);
+    if (Number.isFinite(asNumber)) return JSON.stringify([asNumber]);
+
+    const parts = trimmed
+      .split(",")
+      .map((item) => Number(item.trim()))
+      .filter((item) => Number.isFinite(item));
+    return parts.length > 0 ? JSON.stringify(parts) : null;
+  }
+};
+
+const getZoneIdsKeyFromStorage = () => {
+  if (typeof window === "undefined") return null;
+  return normalizeZoneIdForKey(localStorage.getItem("zoneid"));
 };
 
 export default function useGetModule() {
-  return useQuery("module-list", getModule, {
+  const [zoneIdsKey, setZoneIdsKey] = useState(() =>
+    getZoneIdsKeyFromStorage(),
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const updateZoneIds = () => {
+      setZoneIdsKey(getZoneIdsKeyFromStorage());
+    };
+
+    updateZoneIds();
+    window.addEventListener("storage", updateZoneIds);
+    window.addEventListener("focus", updateZoneIds);
+    const intervalId = window.setInterval(updateZoneIds, 1000);
+
+    return () => {
+      window.removeEventListener("storage", updateZoneIds);
+      window.removeEventListener("focus", updateZoneIds);
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
+  const query = useQuery(["module-list", zoneIdsKey], getModule, {
     enabled: false,
     onError: onErrorResponse,
   });
+  const { refetch } = query;
+
+  // Refresh when the user's zone actually CHANGES — not on mount. Every caller
+  // already decides for itself whether it needs the module list (MainLayout,
+  // for instance, only wants it on /home), and firing here on mount overrode
+  // those gates: `enabled: false` was meaningless because refetch() ignores it,
+  // so the module list was requested on every page that renders the layout.
+  const previousZoneIdsKey = useRef(zoneIdsKey);
+  useEffect(() => {
+    const changed = previousZoneIdsKey.current !== zoneIdsKey;
+    previousZoneIdsKey.current = zoneIdsKey;
+    if (!changed || !zoneIdsKey) return;
+    refetch();
+  }, [zoneIdsKey, refetch]);
+
+  return query;
 }

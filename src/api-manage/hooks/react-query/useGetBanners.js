@@ -3,10 +3,14 @@ import { useQuery } from "react-query";
 import { onSingleErrorResponse } from "../../api-error-response/ErrorResponses";
 import { banners } from "../../ApiRoutes";
 import { getModuleId } from "helper-functions/getModuleId";
+import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
+import { ModuleTypes } from "helper-functions/moduleTypes";
+import { getApiContent } from "../../getApiContent";
+
 const getBanners = async (feature) => {
   const url = feature ? `${banners}?feature=${feature}` : banners;
   const { data } = await MainApi.get(url);
-  return data;
+  return getApiContent(data);
 };
 
 export default function useGetBanners(feature) {

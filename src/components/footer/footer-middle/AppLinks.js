@@ -31,9 +31,8 @@ export const CustomButton = styled(Button)(({ theme, graybackground }) => ({
   },
 }));
 const AppLinks = (props) => {
-  const { graybackground, landingPageData } = props;
+  const { graybackground, landingPageData, align = "center" } = props;
   const theme = useTheme();
-  console.log({ landingPageData });
 
   let language_direction;
   if (typeof window !== "undefined") {
@@ -140,7 +139,7 @@ const AppLinks = (props) => {
       direction="row"
       spacing={2}
       gap={language_direction === "rtl" && "10px"}
-      justifyContent="center"
+      justifyContent={align}
     >
       {showPlayStore && googlePlay()}
       {showAppStore && appleStore()}

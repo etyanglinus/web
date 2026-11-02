@@ -12,7 +12,8 @@ import {
   LoadScript,
   Polyline,
   DirectionsRenderer,
-  OverlayView, MarkerF,
+  OverlayView,
+  MarkerF,
 } from "@react-google-maps/api";
 import { alpha, CircularProgress, IconButton, Typography } from "@mui/material";
 import { Stack } from "@mui/system";
@@ -64,32 +65,56 @@ const MapComponent = (props) => {
     deliveryManLng,
     isStore,
     isFooter,
-    defaultControl
+    defaultControl,
+    store,
+    deliveryMan,
+    receiver,
+    resAddress,
+    userAddress,
   } = props;
   const theme = useTheme();
   const lineColor = theme.palette.primary.main;
   const [state, dispatch] = useReducer(reducer, initialState);
   const [directionsResponse, setDirectionsResponse] = useState(null);
-  const [zoom, setZoom] = useState(10);
+  const [zoom, setZoom] = useState(15);
   const [showStartInfo, setShowStartInfo] = useState(false);
   const [showDeliveryInfo, setShowDeliveryInfo] = useState(false);
 
-  const center = {
-    lat: parseFloat(latitude),
-    lng: parseFloat(longitude),
-  };
-  const center1 = {
-    lat: parseFloat(deliveryManLat),
-    lng: parseFloat(deliveryManLng),
-  };
+  const parsedLat = parseFloat(latitude);
+  const parsedLng = parseFloat(longitude);
+  const parsedDmLat = parseFloat(deliveryManLat);
+  const parsedDmLng = parseFloat(deliveryManLng);
+  const hasCenter = Number.isFinite(parsedLat) && Number.isFinite(parsedLng);
+  const hasDeliveryMan =
+    Number.isFinite(parsedDmLat) && Number.isFinite(parsedDmLng);
+  const center = hasCenter ? { lat: parsedLat, lng: parsedLng } : null;
+  const center1 = hasDeliveryMan
+    ? { lat: parsedDmLat, lng: parsedDmLng }
+    : null;
+  const mapCenter = center || center1 || { lat: 0, lng: 0 };
+  const startLocationName =
+    receiver?.contact_person_name ||
+    receiver?.contact_person ||
+    "Delivery Location";
+  const deliveryPersonName =
+    `${deliveryMan?.f_name || ""} ${deliveryMan?.l_name || ""}`.trim() ||
+    "Delivery Man";
+  const deliveryLocationName = deliveryMan
+    ? deliveryPersonName
+    : isStore
+    ? store?.name || "Store Location"
+    : receiver?.contact_person_name ||
+      receiver?.contact_person ||
+      "Store Location";
 
   const options = useMemo(
     () => ({
-      disableDefaultUI: defaultControl,
+      disableDefaultUI: true,
       zoomControl: false,
       streetViewControl: false,
       mapTypeControl: false,
       fullscreenControl: false,
+      disable: false,
     }),
     []
   );
@@ -111,8 +136,23 @@ const MapComponent = (props) => {
     }
   }, [state.map]);
 
+  // The map is uncontrolled (no center/zoom props) so user pan/zoom isn't
+  // overridden on re-render — the viewport must be set imperatively, both on
+  // first load and when coordinates arrive asynchronously.
+  useEffect(() => {
+    if (!state.map) return;
+    if (state.map.getZoom() === undefined) {
+      state.map.setZoom(zoom);
+    }
+    state.map.setCenter(mapCenter);
+  }, [state.map, mapCenter.lat, mapCenter.lng]);
+
   const tryDirections = async () => {
-    if (!window.google || !window.google.maps || !window.google.maps.DirectionsService) {
+    if (
+      !window.google ||
+      !window.google.maps ||
+      !window.google.maps.DirectionsService
+    ) {
       console.warn("Google Maps DirectionsService not loaded yet");
       return;
     }
@@ -140,22 +180,25 @@ const MapComponent = (props) => {
     setDirectionsResponse(null); // or trigger Polyline fallback
   };
   useEffect(() => {
-    if (deliveryManLat) {
+    if (hasCenter && hasDeliveryMan) {
       tryDirections();
     }
   }, [deliveryManLat, deliveryManLng, latitude, longitude]);
 
   const handleZoomIn = () => {
-    if (zoom <= 21) {
-      setZoom((prevZoom) => Math.min(prevZoom + 1));
-    }
+    const current = state.map?.getZoom?.() ?? zoom;
+    const next = Math.min(current + 1, 21);
+    state.map?.setZoom?.(next);
+    setZoom(next);
   };
 
   const handleZoomOut = () => {
-    if (zoom >= 1) {
-      setZoom((prevZoom) => Math.max(prevZoom - 1));
-    }
+    const current = state.map?.getZoom?.() ?? zoom;
+    const next = Math.max(current - 1, 1);
+    state.map?.setZoom?.(next);
+    setZoom(next);
   };
+
   return isLoaded ? (
     <Stack>
       <Stack
@@ -195,13 +238,10 @@ const MapComponent = (props) => {
       </Stack>
       <GoogleMap
         mapContainerStyle={containerStyle}
-        center={center}
         onLoad={onLoad}
-        zoom={zoom}
         onUnmount={onUnmount}
         options={options}
       >
-
         {directionsResponse ? (
           <>
             <DirectionsRenderer
@@ -221,11 +261,52 @@ const MapComponent = (props) => {
                 lng: directionsResponse.routes[0].legs[0].start_location.lng(),
               }}
               icon={{
-                url:"/meeting-point.svg",
+                url: "/meeting-point.svg",
                 scaledSize: new window.google.maps.Size(30, 30),
               }}
+              onMouseOver={() => setShowStartInfo(true)}
+              onMouseOut={() => setShowStartInfo(false)}
             >
-              {/*<CustomImageContainer src={ddd.src} width="40px" height="40px" />*/}
+              {showStartInfo && (
+                <OverlayView
+                  position={{
+                    lat: directionsResponse.routes[0].legs[0].start_location.lat(),
+                    lng: directionsResponse.routes[0].legs[0].start_location.lng(),
+                  }}
+                  mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+                >
+                  <div
+                    style={{
+                      borderRadius: "4px",
+                      minWidth: "150px",
+                      maxWidth: "240px",
+                      textAlign: "center",
+                      background: "#fff",
+                      padding: "4px 8px",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                    }}
+                  >
+                    <Typography
+                      fontWeight={500}
+                      fontSize="12px"
+                      color={theme.palette.neutral[1000]}
+                      mb={0.5}
+                    >
+                      {startLocationName}
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontSize: "10px",
+                        fontWeight: 500,
+                        wordBreak: "break-word",
+                        whiteSpace: "normal",
+                      }}
+                    >
+                      {userAddress || `lat: ${latitude} - lng: ${longitude}`}
+                    </Typography>
+                  </div>
+                </OverlayView>
+              )}
             </MarkerF>
             {isFooter ? null : (
               <MarkerF
@@ -234,102 +315,172 @@ const MapComponent = (props) => {
                   lng: directionsResponse.routes[0].legs[0].end_location.lng(),
                 }}
                 icon={{
-                  url:"/delivery_man_marker.png",
+                  url: "/delivery_man_marker.png",
                   scaledSize: new google.maps.Size(30, 40),
                 }}
-              />
-
+                onMouseOver={() => setShowDeliveryInfo(true)}
+                onMouseOut={() => setShowDeliveryInfo(false)}
+              >
+                {showDeliveryInfo && (
+                  <OverlayView
+                    position={{
+                      lat: directionsResponse.routes[0].legs[0].end_location.lat(),
+                      lng: directionsResponse.routes[0].legs[0].end_location.lng(),
+                    }}
+                    mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+                  >
+                    <div
+                      style={{
+                        borderRadius: "4px",
+                        minWidth: "150px",
+                        maxWidth: "240px",
+                        textAlign: "center",
+                        background: "#fff",
+                        padding: "4px 8px",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                      }}
+                    >
+                      <Typography
+                        fontWeight={500}
+                        fontSize="12px"
+                        color={theme.palette.neutral[1000]}
+                        mb={0.5}
+                      >
+                        {deliveryLocationName}
+                      </Typography>
+                      <Typography
+                        sx={{
+                          fontSize: "10px",
+                          fontWeight: 500,
+                          wordBreak: "break-word",
+                          whiteSpace: "normal",
+                        }}
+                      >
+                        {resAddress ||
+                          `lat: ${deliveryManLat} - lng: ${deliveryManLng}`}
+                      </Typography>
+                    </div>
+                  </OverlayView>
+                )}
+              </MarkerF>
             )}
           </>
         ) : (
-         <Stack>
-           <MarkerF
-             position={center}
-             icon={{
-               url: "/meeting-point.svg",
-               scaledSize: new window.google.maps.Size(30, 30),
-             }}
-             onMouseOver={() => setShowStartInfo(true)}
-             onMouseOut={() => setShowStartInfo(false)}
-           >
-             {showStartInfo && (
-               <OverlayView
-                 position={center}
-                 mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-               >
-                 <div
-                   style={{
-                     borderRadius: "4px",
-                     minWidth: "150px",
-                     textAlign: "center",
-                   }}
-                 >
-                   <Typography
-                     sx={{
-                       background: "#fff",
-                       padding: "4px 8px",
-                       borderRadius: "4px",
-                       boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                       fontSize: "10px",
-                       width: "100%",
-                       fontWeight: 500,
-                     }}
-                   >
-                     {`lat: ${latitude} - lng: ${longitude}`}
+          <Stack>
+            {hasCenter && (
+              <MarkerF
+                position={center}
+                icon={{
+                  url: "/meeting-point.svg",
+                  scaledSize: new window.google.maps.Size(30, 30),
+                }}
+                onMouseOver={() => setShowStartInfo(true)}
+                onMouseOut={() => setShowStartInfo(false)}
+              >
+                {showStartInfo && (
+                  <OverlayView
+                    position={center}
+                    mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+                  >
+                    <div
+                      style={{
+                        borderRadius: "4px",
+                        minWidth: "150px",
+                        maxWidth: "240px",
+                        textAlign: "center",
+                        background: "#fff",
+                        padding: "4px 8px",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                      }}
+                    >
+                      <Typography
+                        fontWeight={500}
+                        fontSize="12px"
+                        color={theme.palette.neutral[1000]}
+                        mb={0.5}
+                      >
+                        {startLocationName}
+                      </Typography>
 
-                   </Typography>
-                 </div>
-               </OverlayView>
-               )}
-           </MarkerF>
-           {deliveryManLat && deliveryManLng && (
-             <MarkerF
-               position={{
-                 lat: parseFloat(deliveryManLat),
-                 lng: parseFloat(deliveryManLng),
-               }}
-               icon={{
-                 url:"/delivery_man_marker.png",
-                 scaledSize: new google.maps.Size(30, 40),
-               }}
-               onMouseOver={() => setShowDeliveryInfo(true)}
-               onMouseOut={() => setShowDeliveryInfo(false)}
-             >
-               {showDeliveryInfo && (
-                 <OverlayView
-                   position={center}
-                   mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-                 >
-                   <div
-                     style={{
-                       borderRadius: "4px",
-                       minWidth: "150px",
-                       textAlign: "center",
-                     }}
-                   >
-                     <Typography
-                       sx={{
-                         background: "#fff",
-                         padding: "4px 8px",
-                         borderRadius: "4px",
-                         boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                         fontSize: "10px",
-                         width: "100%",
-                         fontWeight: 500,
-                       }}
-                     >
-                       {`lat: ${deliveryManLat} - lng: ${deliveryManLng}`}
-
-                     </Typography>
-                   </div>
-                 </OverlayView>
-               )}
-             </MarkerF>
-
-           ) }
-
-
-         </Stack>
+                      <Typography
+                        sx={{
+                          background: "#fff",
+                          padding: "4px 8px",
+                          borderRadius: "4px",
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                          fontSize: "10px",
+                          width: "100%",
+                          fontWeight: 500,
+                          wordBreak: "break-word",
+                          whiteSpace: "normal",
+                        }}
+                      >
+                        {resAddress || `lat: ${latitude} - lng: ${longitude}`}
+                      </Typography>
+                    </div>
+                  </OverlayView>
+                )}
+              </MarkerF>
+            )}
+            {hasDeliveryMan && (
+              <MarkerF
+                position={center1}
+                icon={{
+                  url: "/delivery_man_marker.png",
+                  scaledSize: new google.maps.Size(30, 40),
+                }}
+                onMouseOver={() => setShowDeliveryInfo(true)}
+                onMouseOut={() => setShowDeliveryInfo(false)}
+              >
+                {showDeliveryInfo && (
+                  <OverlayView
+                    position={{
+                      lat: parseFloat(deliveryManLat),
+                      lng: parseFloat(deliveryManLng),
+                    }}
+                    mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+                  >
+                    <div
+                      style={{
+                        borderRadius: "4px",
+                        minWidth: "150px",
+                        maxWidth: "240px",
+                        textAlign: "center",
+                        background: "#fff",
+                        padding: "4px 8px",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                      }}
+                    >
+                      <Typography
+                        fontWeight={500}
+                        fontSize="12px"
+                        color={theme.palette.neutral[1000]}
+                        mb={0.5}
+                      >
+                        {deliveryLocationName}
+                      </Typography>
+                      <Typography
+                        sx={{
+                          background: "#fff",
+                          padding: "4px 8px",
+                          borderRadius: "4px",
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                          fontSize: "10px",
+                          width: "100%",
+                          fontWeight: 500,
+                          wordBreak: "break-word",
+                          whiteSpace: "normal",
+                        }}
+                      >
+                        {userAddress ||
+                          `lat: ${deliveryManLat} - lng: ${deliveryManLng}`}
+                      </Typography>
+                    </div>
+                  </OverlayView>
+                )}
+              </MarkerF>
+            )}
+          </Stack>
         )}
       </GoogleMap>
     </Stack>

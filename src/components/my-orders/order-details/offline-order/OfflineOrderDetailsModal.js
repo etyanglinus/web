@@ -21,6 +21,12 @@ import {
 import CheckoutFailedCard from "components/checkout/CheckoutFailedCard";
 import { useRouter } from "next/router";
 import { CustomBox } from "styled-components/CustomStyles.style";
+
+const formatUnderscoreText = (value) =>
+  (value === null || value === undefined ? "" : String(value)).replaceAll(
+    "_",
+    " "
+  );
 const OfflineOrderDetailsModal = ({
   trackData,
   handleOfflineClose,
@@ -33,6 +39,8 @@ const OfflineOrderDetailsModal = ({
 }) => {
   const theme = useTheme();
   const router = useRouter();
+  const displayId =
+    trackData?.id ?? trackData?.booking_id ?? router?.query?.orderId;
   console.log({ trackDataIsFetching });
 
   return (
@@ -50,7 +58,7 @@ const OfflineOrderDetailsModal = ({
           {(page === "my-orders?flag=fail" || page === "my-orders?flag=cancel" || trackData?.order_status === "failed") ? (
             <CheckoutFailedCard
               handleOrderDetailsClose={handleOfflineClose}
-              id={trackData?.id}
+              id={displayId}
               setOpenPaymentMethod={setOpenPaymentMethod}
               amount={trackData?.order_amount}
               setPaymentFailedData={setPaymentFailedData}
@@ -74,7 +82,7 @@ const OfflineOrderDetailsModal = ({
                 <Typography >
                   {t("We will begin processing your order shortly. Your Order ID is")}
                   <Typography component="span" fontWeight="bold" color="primary.main">
-                    #{trackData?.id}
+                    #{displayId}
                   </Typography>
                   {t(", Please keep this Order ID handy for tracking")}
                 </Typography>
@@ -111,7 +119,7 @@ const OfflineOrderDetailsModal = ({
                       {`${t("Order")} #`}
                     </ModalCustomTypography>
                     <Typography sx={{ wordWrap: "break-word" }}>
-                      :&nbsp;&nbsp;{trackData?.id}
+                      :&nbsp;&nbsp;{displayId}
                     </Typography>
                   </ItemWrapper>
                   <ItemWrapper>
@@ -138,11 +146,11 @@ const OfflineOrderDetailsModal = ({
                             <ModalCustomTypography
                               sx={{ textTransform: "capitalize" }}
                             >
-                              {item?.user_input.replaceAll("_", " ")}
+                              {formatUnderscoreText(item?.user_input)}
                             </ModalCustomTypography>
                             <Typography sx={{ wordWrap: "break-word" }}>
                               :&nbsp;&nbsp;
-                              {item?.user_data.replaceAll("_", " ")}
+                              {formatUnderscoreText(item?.user_data)}
                             </Typography>
                           </ItemWrapper>
                         );

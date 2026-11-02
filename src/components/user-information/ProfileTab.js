@@ -31,7 +31,7 @@ const ProfileTab = ({
   const tabMenu = menuData?.filter((item) => item?.id !== 10);
   const dispatch = useDispatch();
   const router = useRouter();
-  const { configData ,modules} = useSelector((state) => state.configData);
+  const { configData, modules } = useSelector((state) => state.configData);
   const handleClick = (item) => {
     handlePage(item);
     setEditProfile?.(false);
@@ -69,13 +69,23 @@ const ProfileTab = ({
         indicatorColor="none"
         variant="scrollable"
         scrollButtons="auto"
+        sx={{ 
+          mb: { xs: "16px", md: "20px" },
+          minHeight: "auto",
+          width: "100%",
+        }}
       >
         {tabMenu?.map((item, index) => {
           if (
             (configData?.customer_wallet_status === 0 && item.id === 4) ||
             (configData?.loyalty_point_status === 0 && item.id === 5) ||
-            (configData?.ref_earning_status === 0 && item.id === 6) || 
-            (!modules?.find((item) => item?.module_type === 'rental') && item.id === 3) || (modules?.find((item) => item?.module_type === 'rental')?.status === 0 && item.id === 3)
+            (configData?.ref_earning_status === 0 && item.id === 6) ||
+            (!modules?.find((item) => item?.module_type === "rental") &&
+              item.id === 3) ||
+            (modules?.find((item) => item?.module_type === "rental")?.status ===
+              0 &&
+              item.id === 3) ||
+            (configData?.pro_member_status === 1 && item.id === 11)
           ) {
             return null;
           } else {
@@ -89,6 +99,11 @@ const ProfileTab = ({
                   onClick={() => handleClick(item)}
                   value={page}
                   borderRadius={borderRadius}
+                  sx={{
+                    "&:hover": {
+                        backgroundColor: "transparent",
+                      },
+                  }}
                 >
                   <Typography
                     fontWeight={
@@ -97,7 +112,7 @@ const ProfileTab = ({
                     color={
                       item?.name === page.split("?")[0]
                         ? theme.palette.primary.main
-                        : theme.palette.neutral[400]
+                        : theme.palette.text.primary
                     }
                     sx={{
                       transition: "all ease 0.3s",
@@ -106,17 +121,17 @@ const ProfileTab = ({
                       },
                     }}
                     fontSize={{
-                      xs: "12px",
+                      xs: "14px",
                       md:
                         item?.name === page.split("?")[0]
-                          ? "16px"
+                          ? "18px"
                           : fontSize
                           ? fontSize
-                          : "14px",
+                          : "16px",
                     }}
                   >
                     {" "}
-                    {t(item?.name.replace("-", " "))}
+                    {t(item?.name.replaceAll("-", " "))}
                   </Typography>
                 </UserProfileTab>
               </Box>
@@ -168,4 +183,3 @@ const ProfileTab = ({
 };
 
 export default ProfileTab;
-//

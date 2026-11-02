@@ -142,7 +142,7 @@ const ModuleWiseNav = (props) => {
 							>
 								<Grid
 									item
-									xs={router.pathname === "/home" ? Object.keys(router.query).length > 0 ? 4 : 2 : 4}
+									xs={router.pathname === "/home" ? Object.keys(router.query).length > 0 ? 2 : 2 : 4}
 									sm={4}
 									align="left"
 									justifyItems="flex-start"
@@ -158,8 +158,7 @@ const ModuleWiseNav = (props) => {
 										getIcon()
 									)}
 								</Grid>
-								{location ? (
-									<Grid
+								<Grid
 										item
 										xs={router.pathname === "/home" ? Object.keys(router.query).length > 0 ? 8 : 10 : 8}
 										sm={8}
@@ -171,15 +170,6 @@ const ModuleWiseNav = (props) => {
 											openDrawer={openDrawer}
 										/>
 									</Grid>
-								) : (
-									<Grid
-										item
-										xs={
-											router.pathname === "/home"  ? 2 : 10
-										}
-										sm={11}
-									></Grid>
-								)}
 							</Grid>
 						</CustomBoxFullWidth>
 					</Grid>

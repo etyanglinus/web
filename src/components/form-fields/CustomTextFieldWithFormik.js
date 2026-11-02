@@ -22,6 +22,7 @@ const CustomTextFieldWithFormik = (props) => {
 		placeholder,
 		height,
 		startIcon,
+		showStartIcon = false,
 		autoFocus,
 		fontSize,
 		maxLength,
@@ -32,6 +33,7 @@ const CustomTextFieldWithFormik = (props) => {
 	const theme = useTheme();
 	const [inputValue, setInputValue] = useState(value);
 	const [showPassword, setShowPassword] = useState(false);
+	const hasError = Boolean(touched && errors);
 	const onChangeHandlerForField = (e) => {
 		setInputValue(e.target.value);
 	};
@@ -55,19 +57,25 @@ const CustomTextFieldWithFormik = (props) => {
 						label={label}
 						name={label}
 						required={required}
-						error={Boolean(touched && errors)}
+						error={hasError}
 						helperText={touched && errors}
 						value={inputValue}
 						placeholder={placeholder ? placeholder : ""}
 						onChange={onChangeHandlerForField}
 						onBlur={onBlurHandler}
 						type={showPassword ? "text" : type}
-
+						InputLabelProps={{
+							shrink: true,
+						}}
 						sx={{
 							"& .MuiFormLabel-asterisk": {
-								color: "red",
+								color: theme.palette.error.danger,
 							},
 							"& .MuiFormHelperText-root": {
+								position: "static",
+								marginLeft: "0px",
+								marginTop: "5px",
+								lineHeight: 1.3,
 								[theme.breakpoints.down("sm")]: {
 									fontSize: "10px",
 								},
@@ -78,7 +86,7 @@ const CustomTextFieldWithFormik = (props) => {
 							style: {
 								height: "45px",
 							},
-							startAdornment: startIcon,
+							startAdornment: showStartIcon ? startIcon : undefined,
 							endAdornment: (
 								<InputAdornment position="end">
 									<IconButton
@@ -135,7 +143,7 @@ const CustomTextFieldWithFormik = (props) => {
 						placeholder={placeholder ? placeholder : ""}
 						name={label}
 						required={required}
-						error={Boolean(touched && errors)}
+						error={hasError}
 						helperText={touched && errors}
 						value={inputValue}
 						onChange={onChangeHandlerForField}
@@ -143,7 +151,7 @@ const CustomTextFieldWithFormik = (props) => {
 						type={type}
 						height={height}
 						InputProps={{
-							startAdornment: startIcon,
+							startAdornment: showStartIcon ? startIcon : undefined,
 							inputProps: { min: 0, id: id },
 							style: {
 								height: height || "45px",
@@ -154,9 +162,13 @@ const CustomTextFieldWithFormik = (props) => {
 						}}
 						sx={{
 							"& .MuiFormLabel-asterisk": {
-								color: "red",
+								color: theme.palette.error.danger,
 							},
 							"& .MuiFormHelperText-root": {
+								position: "static",
+								marginLeft: "0px",
+								marginTop: "5px",
+								lineHeight: 1.3,
 								[theme.breakpoints.down("sm")]: {
 									fontSize: "10px",
 								},
@@ -168,7 +180,16 @@ const CustomTextFieldWithFormik = (props) => {
 			);
 		}
 	};
-	return <Box sx={{ width: "100%", minHeight: "55px" }}>{renderHandler()}</Box>;
+	return (
+		<Box
+			sx={{
+				width: "100%",
+				minHeight: hasError ? "78px" : "55px",
+			}}
+		>
+			{renderHandler()}
+		</Box>
+	);
 };
 
 export default CustomTextFieldWithFormik;

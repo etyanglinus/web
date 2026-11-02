@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import { CustomStackFullWidth } from "../../../../styled-components/CustomStyles.style";
 import { VIEW_ALL_TEXT } from "../../../../utils/staticTexts";
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
+import { handleStoreRedirect } from "helper-functions/handleStoreRedirect";
 
 const CollapsableMenu = ({
   value,
@@ -19,13 +20,31 @@ const CollapsableMenu = ({
   setOpenDrawer,
   pathName,
   forcategory,
+  open,
+  onToggle,
+  onClose,
 }) => {
   const router = useRouter();
   const { t } = useTranslation();
 
-  const [open, setOpen] = useState(false);
-  const handleClick = () => setOpen((prevState) => !prevState);
-  const handleRoute = (id) => {
+  const [localOpen, setLocalOpen] = useState(false);
+  const isControlled = typeof open === "boolean";
+  const isOpen = isControlled ? open : localOpen;
+  const handleClick = () => {
+    if (isControlled) {
+      onToggle?.();
+      return;
+    }
+    setLocalOpen((prevState) => !prevState);
+  };
+  const closeMenu = () => {
+    if (isControlled) {
+      onClose?.();
+      return;
+    }
+    setLocalOpen(false);
+  };
+  const handleRoute = (id, slug) => {
     if (forcategory === "true") {
       if (getCurrentModuleType() === "rental") {
         router.push({
@@ -34,43 +53,40 @@ const CollapsableMenu = ({
         });
       } else {
         router.push({
-          pathname: "/home",
+          pathname: `/home/category/${slug || id}`,
           query: {
-            search: "category",
-            id: id,
-            module_id: `${getModuleId()}`,
-            name: btoa(name),
-            data_type: "category",
+            id,
+            module: `${getModuleId()}`,
           },
         });
       }
     } else {
-      router.push({
-        pathname: `/${value?.path}/[id]`,
-        query: { id: `${id}`, module_id: `${getModuleId()}` },
-      });
+      handleStoreRedirect({
+        id: id,
+        slug: slug,
+      }, router);
     }
 
     // Ensure these states are updated regardless of the route logic
-    setOpen(false);
+    closeMenu();
     setOpenDrawer(false);
   };
 
   const handleView = () => {
     if (pathName === "/categories") {
-      if (getCurrentModuleType() === "rental"){
+      if (getCurrentModuleType() === "rental") {
         router.push({ pathname: "/rental/vehicle-search", query: { all_category: 1 } }, undefined, { shallow: false });
       } else {
         router.push(
           {
-            pathname: "/home",
-          query: {
-            search: VIEW_ALL_TEXT.allCategories,
-            from: "allCategories",
-            data_type: "new",
+            pathname: "/search",
+            query: {
+              search: VIEW_ALL_TEXT.allCategories,
+              from: "allCategories",
+              data_type: "new",
+            },
           },
-        },
-        undefined,
+          undefined,
           { shallow: true }
         );
       }
@@ -78,7 +94,7 @@ const CollapsableMenu = ({
       router.push(pathName, undefined, { shallow: true });
     }
 
-    setOpen(false);
+    closeMenu();
     setOpenDrawer(false);
   };
   return (
@@ -93,14 +109,14 @@ const CollapsableMenu = ({
         }}
       >
         <ListItemText primary={t(value?.text)} />
-        {open ? (
+        {isOpen ? (
           <ExpandLess sx={{ fontSize: "20px" }} />
         ) : (
           <ExpandMore sx={{ fontSize: "20px" }} />
         )}
       </ListItemButton>
 
-      <Collapse in={open} timeout="auto" unmountOnExit>
+      <Collapse in={isOpen} timeout="auto" unmountOnExit>
         <List component="div">
           {value.items?.slice?.(0, 10)?.map((item, index) => (
             <ListItemButton
@@ -112,7 +128,7 @@ const CollapsableMenu = ({
                 },
               }}
               key={index}
-              onClick={() => handleRoute(item.id)}
+              onClick={() => handleRoute(item.id, item?.slug)}
             >
               <ListItemText primary={item.name}></ListItemText>
             </ListItemButton>

@@ -80,7 +80,7 @@ const FaqTabSection: React.FC<FaqTabSectionProps> = ({ faq_section }) => {
 
     if (dynamicDriverFaqs?.length) {
         tabs.push({
-            label: "I'm a Rider",
+            label: "I'm a Deliveryman",
             icon: <DirectionsCarIcon />,
             type: "deliveryman"
         });

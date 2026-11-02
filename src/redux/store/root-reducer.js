@@ -21,6 +21,8 @@ import wishListReducer from "../slices/wishList";
 import storeResDataReducer from "../slices/storeRegistrationData";
 import rentalCategoriesLists from "../slices/rentalCategories";
 import rentalSearch from "../slices/rentalSearch";
+import searchProductModalReducer from "../slices/searchProductModal";
+import zoneDataReducer from "../slices/zoneData";
 
 //register all reducers here
 export const rootReducer = combineReducers({
@@ -46,4 +48,6 @@ export const rootReducer = combineReducers({
   storeRegData: storeResDataReducer,
   rentalCategoriesLists: rentalCategoriesLists,
   rentalSearch: rentalSearch,
+  searchProductModal: searchProductModalReducer,
+  zoneData: zoneDataReducer,
 });

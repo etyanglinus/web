@@ -22,7 +22,6 @@ const MobileModuleSelection = () => {
     }
     setOpenModuleSelection(false);
   };
-
   const getModule = () => {
     return JSON.parse(window.localStorage.getItem("module"));
   };

@@ -30,7 +30,7 @@ const ChatContent = ({
     channelList && channelList?.find((item) => item.receiver_type === "admin");
 
   const handleChatWithAdmin = () => {
-    if (channelList.length === 0 || !isAdmin) {
+    if (!channelList?.length || !isAdmin) {
       return (
         <ChatWithAdmin
           configData={configData}
@@ -54,13 +54,13 @@ const ChatContent = ({
   return (
     <Stack
       spacing={2}
-      padding={{ xs: ".5rem", md: "1rem 1rem 1rem 2rem" }}
-      marginTop={{ xs: "-10px", md: "0px" }}
+      padding={{ xs: "16px", md: "0px" }}
+      marginTop={{ xs: "0px", md: "0px" }}
     >
       <Typography
-        sx={{
-          paddingBlockStart: ".5rem",
-        }}
+        // sx={{
+        //   paddingBlockStart: ".5rem",
+        // }}
         fontSize="18px"
         fontWeight="700"
       >

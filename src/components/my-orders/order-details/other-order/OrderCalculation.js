@@ -1,6 +1,6 @@
 import React from "react";
 import { CustomStackFullWidth } from "styled-components/CustomStyles.style";
-import { styled, Typography } from "@mui/material";
+import { alpha, styled, Tooltip, Typography, useTheme } from "@mui/material";
 import { getAmountWithSign } from "helper-functions/CardHelpers";
 import { Stack } from "@mui/system";
 import { useSelector } from "react-redux";
@@ -11,12 +11,12 @@ export const OrderSummaryCalculationCard = styled(CustomStackFullWidth)(
     paddingBlock: "25px",
     backgroundColor: theme.palette.background.custom6,
     borderRadius: "10px",
-  })
+  }),
 );
 const getItemsPrice = (items) => {
   const productPrice = items?.reduce(
     (total, product) => product?.price * product?.quantity + total,
-    0
+    0,
   );
   return productPrice;
 };
@@ -25,11 +25,11 @@ const getAddOnsPrice = (items) => {
     (total, product) =>
       (product?.add_ons?.length > 0
         ? product?.add_ons?.reduce(
-          (cTotal, cProduct) => cProduct?.price * cProduct?.quantity + cTotal,
-          0
-        )
+            (cTotal, cProduct) => cProduct?.price * cProduct?.quantity + cTotal,
+            0,
+          )
         : 0) + total,
-    0
+    0,
   );
   return productAddonsPrice;
 };
@@ -43,31 +43,70 @@ function getRestaurantValue(data, key) {
 
 const OrderCalculation = ({ data, t, trackOrderData }) => {
   const { configData } = useSelector((state) => state.configData);
+  const theme = useTheme();
   const handleExcludedVatTotalAmount = () => {
     return getAmountWithSign(
-      trackOrderData?.order_amount - trackOrderData?.total_tax_amount
+      trackOrderData?.order_amount - trackOrderData?.total_tax_amount,
     );
   };
 
   const due_amount =
     trackOrderData?.order_amount - trackOrderData?.partially_paid_amount;
+
+  const proOrderSavings = Number(trackOrderData?.pro_discount) || 0;
+  const proDeliveryBenefitActive =
+    trackOrderData?.benefit_type === "delivery_fee" &&
+    Number(trackOrderData?.delivery_fee_reduction_amount) > 0;
+  const originalDeliveryCharge = Number(
+    trackOrderData?.original_delivery_charge,
+  );
+  const hasOriginalDeliveryCharge =
+    proDeliveryBenefitActive &&
+    originalDeliveryCharge > Number(trackOrderData?.delivery_charge);
+
+  const hasHappyHourItem = data?.some((item) => !!item?.is_happy_hour);
+  const hasFlashDiscount =
+    Number(trackOrderData?.flash_store_discount_amount) > 0 ||
+    Number(trackOrderData?.flash_admin_discount_amount) > 0;
+  const hasStoreDiscountItem = data?.some((item) => !!item?.is_store_discount);
+  const discountTooltipText =
+    hasHappyHourItem || hasFlashDiscount
+      ? t("Happy Hour Discount")
+      : Number(trackOrderData?.store_discount_amount) > 0 && hasStoreDiscountItem
+      ? t("Store Discount")
+      : "";
   return (
     <OrderSummaryCalculationCard spacing={1.5}>
-      {trackOrderData?.bring_change_amount > 0 ? (
+      {trackOrderData?.bring_change_amount > 0 &&
+      trackOrderData?.payment_method === "cash_on_delivery" ? (
         <CustomStackFullWidth
           direction="row"
           alignItems="center"
           justifyContent="space-between"
           spacing={2}
-          backgroundColor="primary.light"
+          backgroundColor="background.default"
           padding="10px 15px"
           borderRadius="8px"
         >
-          <Typography fontSize="14px">{t(`Please bring ${getAmountWithSign(trackOrderData?.bring_change_amount)} in change when making the delivery.`)}</Typography>
+          <Typography fontSize="14px">
+            {t(
+              `Please bring ${getAmountWithSign(
+                trackOrderData?.bring_change_amount,
+              )} in change when making the delivery.`,
+            )}
+          </Typography>
         </CustomStackFullWidth>
       ) : null}
 
-      <Typography fontWeight="500">{t("Summary")}</Typography>
+      <Typography
+        sx={{
+          fontSize: "18px",
+          fontWeight: 700,
+          color: theme.palette.text.primary,
+        }}
+      >
+        {t("Billing Summary")}
+      </Typography>
       <CustomStackFullWidth
         direction="row"
         alignItems="center"
@@ -114,19 +153,70 @@ const OrderCalculation = ({ data, t, trackOrderData }) => {
         justifyContent="space-between"
         spacing={2}
       >
-        <Typography fontSize="14px"> {t("Discount")}</Typography>
+        <Stack direction="row" alignItems="center" spacing={0.75}>
+          <Typography fontSize="14px">{t("Discount")}</Typography>
+          {discountTooltipText ? (
+            <Tooltip title={discountTooltipText} placement="top" arrow>
+              <i
+                className="fi fi-br-info"
+                style={{
+                  fontSize: "11px",
+                  display: "flex",
+                  lineHeight: 1,
+                  cursor: "pointer",
+                }}
+              />
+            </Tooltip>
+          ) : null}
+        </Stack>
         <Typography fontSize="14px">
           -
           {trackOrderData &&
-            getAmountWithSign(trackOrderData?.store_discount_amount)
+          getAmountWithSign(trackOrderData?.store_discount_amount)
             ? getAmountWithSign(
-              trackOrderData?.store_discount_amount +
-              trackOrderData?.flash_admin_discount_amount +
-              trackOrderData?.flash_store_discount_amount
-            )
+                trackOrderData?.store_discount_amount +
+                  trackOrderData?.flash_admin_discount_amount +
+                  trackOrderData?.flash_store_discount_amount,
+              )
             : 0}
         </Typography>
       </CustomStackFullWidth>
+      {trackOrderData?.benefit_type === "discount" && proOrderSavings > 0 && (
+        <CustomStackFullWidth
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          spacing={2}
+        >
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={0.75}
+            sx={{ minWidth: 0, flex: 1 }}
+          >
+            <Typography fontSize="14px">{t("Pro Discount")}</Typography>
+            <Typography
+              component="span"
+              sx={{
+                flexShrink: 0,
+                fontSize: "11px",
+                px: 0.75,
+                py: 0.1,
+                borderRadius: "999px",
+                backgroundColor: alpha(theme.palette.primary.main, 0.12),
+                color: theme.palette.primary.main,
+                fontWeight: 600,
+              }}
+            >
+              {t("Pro")}
+            </Typography>
+          </Stack>
+          <Typography fontSize="14px" sx={{ flexShrink: 0 }}>
+            -{getAmountWithSign(proOrderSavings)}
+          </Typography>
+        </CustomStackFullWidth>
+      )}
+
       {Number.parseInt(trackOrderData?.coupon_discount_amount) !== 0 && (
         <CustomStackFullWidth
           direction="row"
@@ -134,8 +224,32 @@ const OrderCalculation = ({ data, t, trackOrderData }) => {
           justifyContent="space-between"
           spacing={2}
         >
-          <Typography fontSize="14px"> {t("Coupon Discount")}</Typography>
-          <Typography fontSize="14px">
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={0.75}
+            sx={{ minWidth: 0, flex: 1 }}
+          >
+            <Typography fontSize="14px">{t("Coupon Discount")}</Typography>
+            {trackOrderData?.benefit_type === "coupon" && (
+              <Typography
+                component="span"
+                sx={{
+                  flexShrink: 0,
+                  fontSize: "11px",
+                  px: 0.75,
+                  py: 0.1,
+                  borderRadius: "999px",
+                  backgroundColor: alpha(theme.palette.primary.main, 0.12),
+                  color: theme.palette.primary.main,
+                  fontWeight: 600,
+                }}
+              >
+                {t("Pro")}
+              </Typography>
+            )}
+          </Stack>
+          <Typography fontSize="14px" sx={{ flexShrink: 0 }}>
             -
             {trackOrderData &&
               getAmountWithSign(trackOrderData?.coupon_discount_amount)}
@@ -171,17 +285,15 @@ const OrderCalculation = ({ data, t, trackOrderData }) => {
           </Typography>
         </CustomStackFullWidth>
       ) : null}
-      {trackOrderData?.tax_status === "excluded" && trackOrderData?.total_tax_amount
-        > 0 && (
+      {trackOrderData?.tax_status === "excluded" &&
+        trackOrderData?.total_tax_amount > 0 && (
           <CustomStackFullWidth
             direction="row"
             alignItems="center"
             justifyContent="space-between"
             spacing={2}
           >
-            <Typography>
-              {t("VAT/TAX")}
-            </Typography>
+            <Typography>{t("VAT/TAX")}</Typography>
             <Typography>
               {trackOrderData?.tax_status !== "included" && " (+) "}
               {trackOrderData &&
@@ -202,22 +314,26 @@ const OrderCalculation = ({ data, t, trackOrderData }) => {
           </Typography>
         </CustomStackFullWidth>
       )}
-      {configData?.add_fund_status === 1 ? (
+      {configData?.additional_charge_status === 1 ? (
         <CustomStackFullWidth
           direction="row"
           alignItems="center"
           justifyContent="space-between"
           spacing={2}
         >
-          <Typography fontSize="14px" sx={{
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap", // ensures single line
-          }}>
-            {configData?.additional_charge_name}
+          <Typography
+            fontSize="14px"
+            sx={{
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap", // ensures single line
+            }}
+          >
+            {t(configData?.additional_charge_name)}
           </Typography>
           <Typography fontSize="14px">
-            {trackOrderData && getAmountWithSign(configData?.additional_charge)}
+            {trackOrderData &&
+              getAmountWithSign(trackOrderData?.additional_charge)}
           </Typography>
         </CustomStackFullWidth>
       ) : null}
@@ -228,11 +344,78 @@ const OrderCalculation = ({ data, t, trackOrderData }) => {
         justifyContent="space-between"
         spacing={2}
       >
-        <Typography fontSize="14px">{t("Delivery fee")}</Typography>
-        <Typography fontSize="14px">
-          {trackOrderData && getAmountWithSign(trackOrderData?.delivery_charge)}
-        </Typography>
+        <Stack direction="row" alignItems="center" spacing={0.75}>
+          <Typography fontSize="14px">{t("Delivery fee")}</Typography>
+          {proDeliveryBenefitActive ? (
+            <Typography
+              component="span"
+              sx={{
+                fontSize: "11px",
+                px: 0.75,
+                py: 0.1,
+                borderRadius: "999px",
+                backgroundColor: alpha(theme.palette.primary.main, 0.12),
+                color: theme.palette.primary.main,
+                fontWeight: 600,
+              }}
+            >
+              {t("Pro")}
+            </Typography>
+          ) : null}
+        </Stack>
+        {hasOriginalDeliveryCharge ? (
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <Typography
+              fontSize="13px"
+              sx={{
+                textDecoration: "line-through",
+                color: theme.palette.text.disabled,
+              }}
+            >
+              {getAmountWithSign(originalDeliveryCharge)}
+            </Typography>
+            <Typography fontSize="14px" fontWeight={600} color="primary.main">
+              {Number(trackOrderData?.delivery_charge) > 0
+                ? getAmountWithSign(trackOrderData?.delivery_charge)
+                : t("Free")}
+            </Typography>
+          </Stack>
+        ) : (
+          <Typography fontSize="14px">
+            {trackOrderData &&
+              (Number(trackOrderData?.delivery_charge) > 0
+                ? getAmountWithSign(trackOrderData?.delivery_charge)
+                : t("Free"))}
+          </Typography>
+        )}
       </CustomStackFullWidth>
+      {trackOrderData?.delivery_type &&
+        Number(trackOrderData?.delivery_type_charge) > 0 && (
+          <CustomStackFullWidth
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+            spacing={2}
+          >
+            <Typography fontSize="14px">
+              {t(
+                {
+                  standard: "Standard Delivery",
+                  express: "Express Delivery",
+                  slightly_delay: "Slightly Delay Delivery",
+                }[trackOrderData?.delivery_type] ||
+                  trackOrderData?.delivery_type,
+              )}
+            </Typography>
+            <Typography fontSize="14px">
+              {`${
+                trackOrderData?.delivery_type === "slightly_delay" ? "- " : "+ "
+              }${getAmountWithSign(
+                Number(trackOrderData?.delivery_type_charge),
+              )}`}
+            </Typography>
+          </CustomStackFullWidth>
+        )}
       <Stack
         width="100%"
         sx={{
@@ -246,19 +429,30 @@ const OrderCalculation = ({ data, t, trackOrderData }) => {
         justifyContent="space-between"
         spacing={2}
       >
-        <Typography component="span" fontWeight="bold" color="primary.main">
+        <Typography
+          component="span"
+          fontWeight="bold"
+          color={theme.palette.text.primary}
+        >
           {t("Total")}
-          {trackOrderData?.tax_status === "included" && (<Typography component="span" ml={"3px"} fontSize="12px" fontWeight="normal" color="text.secondary">
-            {t("(Vat/Tax incl.)")}
-          </Typography>)}
-
+          {trackOrderData?.tax_status === "included" && (
+            <Typography
+              component="span"
+              ml={"3px"}
+              fontSize="12px"
+              fontWeight="normal"
+              color="text.secondary"
+            >
+              {t("(Vat/Tax incl.)")}
+            </Typography>
+          )}
         </Typography>
         <Typography fontWeight="bold">
           {getAmountWithSign(trackOrderData?.order_amount)}
         </Typography>
       </CustomStackFullWidth>
       {trackOrderData?.partially_paid_amount &&
-        trackOrderData?.order_status !== "canceled" ? (
+      trackOrderData?.order_status !== "canceled" ? (
         <CustomStackFullWidth
           direction="row"
           alignItems="center"
@@ -293,7 +487,7 @@ const OrderCalculation = ({ data, t, trackOrderData }) => {
                 {trackOrderData &&
                   t(trackOrderData?.payments[1]?.payment_method).replaceAll(
                     "_",
-                    " "
+                    " ",
                   )}
                 )
               </Typography>
@@ -317,7 +511,7 @@ const OrderCalculation = ({ data, t, trackOrderData }) => {
                 {trackOrderData &&
                   t(trackOrderData?.payments[1]?.payment_method).replaceAll(
                     "_",
-                    " "
+                    " ",
                   )}
                 )
               </Typography>

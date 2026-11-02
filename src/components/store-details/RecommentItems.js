@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   CustomPaperBigCard,
   CustomStackFullWidth,
@@ -9,16 +9,22 @@ import H1 from "../typographies/H1";
 import { useGetRecommendProducts } from "../../api-manage/hooks/react-query/store/useGetRecommendProducts";
 import settings from "../../../pages/settings";
 import ProductCard from "../cards/ProductCard";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
-import Slider from "react-slick";
-import { recommendSettings } from "./recommendSettings";
+import CustomSlider from "components/common/CustomSlider";
 import { getItemsOrFoods } from "../../helper-functions/getItemsOrFoods";
 import { t } from "i18next";
+
+// react-slick breakpoint:X meant "apply for width <= X" (descending); these
+// Swiper breakpoints mean "apply for width >= X" (ascending) - shifted by +1.
+const RECOMMEND_BREAKPOINTS = {
+  541: { slidesPerView: 1.5 },
+  801: { slidesPerView: 2 },
+  1341: { slidesPerView: 2.5 },
+  2401: { slidesPerView: 3 },
+};
+
 const RecommendItems = ({ store_id }) => {
   const [offset, setOffset] = useState(1);
   const [page_limit, setPageLimit] = useState(3);
-  const foodCampaignSliderRef = useRef(null);
   const { data, refetch, isRefetching, isLoading } = useGetRecommendProducts({
     store_id,
     page_limit,
@@ -40,19 +46,20 @@ const RecommendItems = ({ store_id }) => {
             </Grid>
             <Grid item xs={12} sm={12} md={12}>
               <SliderCustom sx={{ paddingTop: "5px" }} gap="15px">
-                <Slider ref={foodCampaignSliderRef} {...recommendSettings}>
-                  {data?.items?.map((item) => {
-                    return (
-                      <div key={item?.id}>
-                        <ProductCard
-                          item={item}
-                          horizontalcard="true"
-                          cardheight="170px"
-                        />
-                      </div>
-                    );
-                  })}
-                </Slider>
+                <CustomSlider
+                  items={data?.items ?? []}
+                  renderItem={(item) => (
+                    <ProductCard
+                      item={item}
+                      horizontalcard="true"
+                      cardheight="170px"
+                    />
+                  )}
+                  arrowVariant="inline"
+                  slidesPerView={1}
+                  spaceBetween={16}
+                  breakpoints={RECOMMEND_BREAKPOINTS}
+                />
               </SliderCustom>
             </Grid>
           </Grid>

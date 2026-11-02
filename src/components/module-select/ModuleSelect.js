@@ -6,6 +6,8 @@ import CustomImageContainer from "../CustomImageContainer";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/router";
 import { setFeaturedCategories, setRecommendedStores } from "redux/slices/storedData";
+import { saveModuleParam, getModuleIdentifier } from "../../utils/moduleParamManager";
+import { filterOutRiderShareModules } from "helper-functions/moduleFilter";
 
 const Container = styled(Stack)(({ theme }) => ({
   position: "fixed",
@@ -51,12 +53,22 @@ const ModuleContainer = styled(Box)(({ theme, selected }) => ({
   },
 }));
 
-export const zoneWiseModule = (data) => {
-  let currentZoneIds = undefined;
-  if (typeof window !== "undefined") {
-    currentZoneIds = JSON.parse(localStorage.getItem("zoneid"));
+// "zoneid" may be stored as a scalar or a JSON array — normalize to an array.
+export const getCurrentZoneIds = () => {
+  if (typeof window === "undefined") return undefined;
+  const rawZoneIds = localStorage.getItem("zoneid");
+  if (!rawZoneIds) return undefined;
+  try {
+    const parsed = JSON.parse(rawZoneIds);
+    return Array.isArray(parsed) ? parsed : [parsed];
+  } catch {
+    return [rawZoneIds];
   }
-  return data.filter((moduleItem) => {
+};
+
+export const zoneWiseModule = (data) => {
+  const currentZoneIds = getCurrentZoneIds();
+  return filterOutRiderShareModules(data)?.filter((moduleItem) => {
     const zoneIds = moduleItem?.zones?.map((zone) => zone.id);
     return currentZoneIds?.some((id) => zoneIds?.includes(id));
   });
@@ -78,20 +90,42 @@ const ModuleSelect = ({
     dispatch(setRecommendedStores([]))
     dispatch(setSelectedModule(item));
     moduleSelectHandler(item);
+
+    // Get module identifier (slug if available, otherwise id)
+    const moduleIdentifier = getModuleIdentifier(item);
+
+    // Save selected module to localStorage and cookie
+    saveModuleParam(item?.id, item?.slug);
+
+    const { module_id: legacyModuleId, ...restQuery } = router.query;
+    const nextQuery = { ...restQuery, module: moduleIdentifier };
     const isModuleExist = existingModuleId?.includes(item?.id);
     if (
       interestId?.length > 0 &&
       !isModuleExist &&
       item.module_type !== "parcel" && item?.module !== "rental"
     ) {
-      router.push("/interest", undefined, { shallow: true });
+      router.push({ pathname: "/interest", query: nextQuery }, undefined, {
+        shallow: true,
+      });
+      return;
     }
+    router.replace(
+      { pathname: router.pathname, query: nextQuery },
+      undefined,
+      { shallow: true }
+    );
   };
 
+  const currentZoneIds = getCurrentZoneIds();
+  const filteredModules = filterOutRiderShareModules(data);
+  const modulesToShow = currentZoneIds
+    ? zoneWiseModule(filteredModules)
+    : filteredModules;
   return (
     <Container p=".8rem" spacing={2}>
       {data ? (
-        zoneWiseModule?.(data)?.map((item, index) => {
+        modulesToShow?.map((item, index) => {
           return (
             <Tooltip
               title={item?.module_name}

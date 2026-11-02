@@ -9,6 +9,7 @@ import { setClearCart } from "redux/slices/cart";
 import { useMutation } from "react-query";
 import { toast } from "react-hot-toast";
 import { OrderApi } from "api-manage/another-formated-api/orderApi";
+import { getApiMessage } from "api-manage/getApiContent";
 import { onErrorResponse } from "api-manage/api-error-response/ErrorResponses";
 import LoadingButton from "@mui/lab/LoadingButton";
 import Router from "next/router";
@@ -16,6 +17,9 @@ import { getGuestId } from "helper-functions/getToken";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Checkbox from "@mui/material/Checkbox";
 import { cod_exceeds_message } from "utils/toasterMessages";
+import { resolveFailedPayment } from "helper-functions/failedPayment";
+import useMakePayment from "components/home/module-wise-components/rental/rental-api-manage/hooks/react-query/details/useMakePayment";
+import useCancelBooking from "components/home/module-wise-components/rental/rental-api-manage/hooks/react-query/cancel-booking/useCancelBooking";
 
 interface FailPaymentOrderData {
   order_id: string | number;
@@ -23,6 +27,8 @@ interface FailPaymentOrderData {
   cash_on_delivery?: boolean;
   partially_paid_amount?: number;
   maximum_cod_order_amount?: number;
+  module_type?: string;
+  module?: { module_type?: string };
 }
 
 interface IncompleteOrderModalProps {
@@ -44,8 +50,11 @@ const IncompleteOrderModal: React.FC<IncompleteOrderModalProps> = ({
   const theme = useTheme();
   const dispatch = useDispatch();
 
+  // Mart sends `order_id`, rental `trip_id` — same endpoint, different shape.
+  const failed = resolveFailedPayment(failPaymentOrderData);
+
   const formData = {
-    order_id: failPaymentOrderData?.order_id,
+    order_id: failed?.id,
     _method: "put" as const,
     guest_id: getGuestId(),
   };
@@ -60,46 +69,79 @@ const IncompleteOrderModal: React.FC<IncompleteOrderModalProps> = ({
     "order-payment-method-cancel",
     OrderApi.FailedPaymentMethodCancel
   );
+  // A rental trip is not an order: `customer/order/payment-method` and
+  // `customer/order/cancel` do not know it. Its equivalents are
+  // `rental/user/trip/payment` (cash_payment == COD) and `.../cancel-trip`.
+  const { mutate: rentalPayMutate, isLoading: rentalPayLoading } =
+    useMakePayment();
+  const { mutate: rentalCancelMutate, isLoading: rentalCancelLoading } =
+    useCancelBooking();
 
+  // The order mutations hand back an axios response (`data.message`), the
+  // rental ones the payload or the envelope itself — reading only one shape
+  // left the rental branch with no toast, and the modal open behind the
+  // redirect home.
   const handleSuccess = (response: any) => {
-    if (response?.data?.message) {
-      toast.success(response.data.message);
-      setOpenIncompleteOrder(false);
-    }
+    const message = getApiMessage(response);
+    if (message) toast.success(message);
+    setOpenIncompleteOrder(false);
     dispatch(setClearCart(undefined));
     Router.push("/home", undefined, { shallow: true });
   };
 
   const handleCancelSuccess = (response: any) => {
-    if (response?.data?.message) {
-      toast.success(response.data.message);
-    }
+    const message = getApiMessage(response);
+    if (message) toast.success(message);
     setOpenIncompleteOrder(false);
     dispatch(setClearCart(undefined));
     Router.push("/home", undefined, { shallow: true });
   };
 
   const handleSwitchToCOD = () => {
-    if (!failPaymentOrderData?.order_id) {
+    if (!failed?.id) {
       toast.error(t("Order ID is missing"));
       return;
     }
-    if (failPaymentOrderData?.maximum_cod_order_amount > failPaymentOrderData?.order_amount) {
-      paymentMethodUpdateMutation(formData, {
-        onSuccess: handleSuccess,
-        onError: onErrorResponse,
-      });
-    } else {
+    if (failed.maximumCodAmount <= failed.amount) {
       toast.error(cod_exceeds_message);
+      return;
     }
+    if (failed.isRental) {
+      rentalPayMutate(
+        {
+          trip_id: failed.id,
+          payment_method: "cash_payment",
+          payment_gateway: "cash_payment",
+          payment_platform: "web",
+          guest_id: getGuestId(),
+        },
+        { onSuccess: handleSuccess, onError: onErrorResponse }
+      );
+      return;
+    }
+    paymentMethodUpdateMutation(formData, {
+      onSuccess: handleSuccess,
+      onError: onErrorResponse,
+    });
   };
 
   const handleCancelOrder = () => {
-    if (!failPaymentOrderData?.order_id) {
+    if (!failed?.id) {
       toast.error(t("Order ID is missing"));
       return;
     }
-
+    if (failed.isRental) {
+      rentalCancelMutate(
+        {
+          method: "PUT",
+          trip_id: failed.id,
+          guest_id: getGuestId(),
+          cancellation_reason: "Order payment canceled",
+        },
+        { onSuccess: handleCancelSuccess, onError: onErrorResponse }
+      );
+      return;
+    }
     cancelMutate(
       { ...formData, reason: "Order payment canceled" },
       {
@@ -109,7 +151,7 @@ const IncompleteOrderModal: React.FC<IncompleteOrderModalProps> = ({
     );
   };
 
-  if (!failPaymentOrderData) {
+  if (!failed) {
     return null;
   }
 
@@ -123,7 +165,13 @@ const IncompleteOrderModal: React.FC<IncompleteOrderModalProps> = ({
     >
       <Typography component="span" fontSize="18px" fontWeight="500">
         {t("Your Payment was")}
-        <Typography component="span" ml={1} fontSize="18px" fontWeight="500" color="error">
+        <Typography
+          component="span"
+          ml={1}
+          fontSize="18px"
+          fontWeight="500"
+          color="error"
+        >
           {t("Incomplete")}
         </Typography>
       </Typography>
@@ -148,7 +196,7 @@ const IncompleteOrderModal: React.FC<IncompleteOrderModalProps> = ({
             {t("Booking ID")}
           </Typography>
           <Typography fontWeight="500">
-            {failPaymentOrderData.order_id || t("N/A")}
+            {failed?.id ?? t("N/A")}
           </Typography>
         </Stack>
         <Stack>
@@ -161,10 +209,7 @@ const IncompleteOrderModal: React.FC<IncompleteOrderModalProps> = ({
             {t("Amount")}
           </Typography>
           <Typography fontWeight="500">
-            {failPaymentOrderData.order_amount
-              ? getAmountWithSign(failPaymentOrderData?.partially_paid_amount > 0 ? failPaymentOrderData.order_amount - failPaymentOrderData?.partially_paid_amount : failPaymentOrderData.order_amount)
-              : t("N/A")
-            }
+            {failed?.amount ? getAmountWithSign(failed.dueAmount) : t("N/A")}
           </Typography>
         </Stack>
       </Stack>
@@ -172,25 +217,27 @@ const IncompleteOrderModal: React.FC<IncompleteOrderModalProps> = ({
         textAlign="center"
         sx={{
           color: (theme) => theme.palette.neutral[500],
-          maxWidth: "350px"
+          maxWidth: "350px",
         }}
       >
-        {t("Your payment was incomplete. Please choose an option below to complete your transaction.")}
+        {t(
+          "Your payment was incomplete. Please choose an option below to complete your transaction."
+        )}
       </Typography>
       <FormControlLabel
-        sx={{ alignSelf: "flex-start", }}
+        sx={{ alignSelf: "flex-start" }}
         control={
           <Checkbox
             checked={dontShowAgain}
             onChange={(e) => {
               if (e.target.checked) {
                 localStorage.setItem(
-                  `incomplete_order_hidden_${failPaymentOrderData.order_id}`,
+                  `incomplete_order_hidden_${failed?.id}`,
                   "true"
                 );
               } else {
                 localStorage.removeItem(
-                  `incomplete_order_hidden_${failPaymentOrderData.order_id}`
+                  `incomplete_order_hidden_${failed?.id}`
                 );
               }
               setDontShowAgain(e.target.checked);
@@ -198,7 +245,10 @@ const IncompleteOrderModal: React.FC<IncompleteOrderModalProps> = ({
           />
         }
         label={
-          <Typography fontSize="14px" sx={{ color: theme => theme.palette.neutral[500] }}>
+          <Typography
+            fontSize="14px"
+            sx={{ color: (theme) => theme.palette.neutral[500] }}
+          >
             {t("Don't show this again")}
           </Typography>
         }
@@ -210,25 +260,26 @@ const IncompleteOrderModal: React.FC<IncompleteOrderModalProps> = ({
           setOpenPaymentModal(true);
           setOpenIncompleteOrder(false);
         }}
-        disabled={!failPaymentOrderData.order_id}
+        disabled={!failed?.id}
       >
         {t("Pay Now")}
       </Button>
-      {failPaymentOrderData.cash_on_delivery && (
+      {failed?.cashOnDelivery && (
         <LoadingButton
-          loading={orderLoading}
+          loading={orderLoading || rentalPayLoading}
           variant="outlined"
           fullWidth
           onClick={handleSwitchToCOD}
-          disabled={!failPaymentOrderData.order_id || orderLoading}
+          disabled={!failed?.id || orderLoading || rentalPayLoading}
           sx={{
-            bgcolor: (theme) => alpha(theme.palette.neutral[200], 0.4),
-            color: (theme) => theme.palette.neutral[800],
+            backgroundColor: (theme) => alpha(theme.palette.neutral[600], 0.4),
+            color: (theme) => theme.palette.neutral[1000],
             borderColor: "transparent",
             // px: "30px",
             // borderRadius: "5px",
             "&:hover": {
-              bgcolor: (theme) => alpha(theme.palette.neutral[200], 1),
+              backgroundColor: (theme) =>
+                alpha(theme.palette.neutral[200], 0.8),
               color: (theme) => theme.palette.neutral[900],
               borderColor: "transparent",
             },
@@ -250,12 +301,15 @@ const IncompleteOrderModal: React.FC<IncompleteOrderModalProps> = ({
         }}
         variant="text"
         onClick={handleCancelOrder}
-        loading={cancelLoading}
-        disabled={!failPaymentOrderData.order_id || cancelLoading}
+        loading={cancelLoading || rentalCancelLoading}
+        disabled={!failed?.id || cancelLoading || rentalCancelLoading}
       >
-        {t("Cancel Order")}
+        {failed?.isParcel
+          ? t("Cancel Parcel")
+          : failed?.isRental
+          ? t("Cancel Trip")
+          : t("Cancel Order")}
       </LoadingButton>
-
     </Stack>
   );
 };

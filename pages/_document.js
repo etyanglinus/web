@@ -1,4 +1,5 @@
 import { Children } from "react";
+import { getApiList } from "api-manage/getApiContent";
 import Document, { Head, Html, Main, NextScript } from "next/document";
 import createEmotionServer from "@emotion/server/create-instance";
 import createEmotionCache from "../src/utils/create-emotion-cache";
@@ -10,11 +11,44 @@ class CustomDocument extends Document {
     return (
       <Html lang="en">
         <Head>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                (function () {
+                  try {
+                    var mode = "light";
+                    var cookieMatch = document.cookie.match(/(?:^|;\\s*)themeMode=(dark|light)(?:;|$)/);
+
+                    if (cookieMatch && cookieMatch[1]) {
+                      mode = cookieMatch[1];
+                    } else {
+                      var stored = localStorage.getItem("settings");
+                      if (stored) {
+                        var parsed = JSON.parse(stored);
+                        if (parsed && parsed.theme === "dark") mode = "dark";
+                      } else if (
+                        window.matchMedia &&
+                        window.matchMedia("(prefers-color-scheme: dark)").matches
+                      ) {
+                        mode = "dark";
+                      }
+                    }
+
+                    var root = document.documentElement;
+                    var pageBackground = mode === "dark" ? "#0B0F19" : "#FFFFFF";
+                    root.setAttribute("data-theme", mode);
+                    root.style.colorScheme = mode;
+                    root.style.backgroundColor = pageBackground;
+                  } catch (e) {}
+                })();
+              `,
+            }}
+          />
           {/* Fonts */}
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
           <link
-            href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap"
+            href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Rubik:wght@300;400;500;600;700&display=swap"
             rel="stylesheet"
           />
 
@@ -164,6 +198,10 @@ class CustomDocument extends Document {
   }
 }
 
+const ANALYTICS_TTL_MS = 5 * 60 * 1000;
+let cachedAnalyticsConfig = null;
+let cachedAnalyticsAt = 0;
+
 CustomDocument.getInitialProps = async (ctx) => {
   const originalRenderPage = ctx.renderPage;
   const cache = createEmotionCache();
@@ -186,23 +224,40 @@ CustomDocument.getInitialProps = async (ctx) => {
 
   // 🛠 Fetch analytics config server-side
   let analyticsConfig = {};
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://yourdomain.com";
-    const res = await fetch(`${baseUrl}/api/v1/config/get-analytic-scripts`, {
-      headers: {
-        "X-software-id": 33571750,
-        "X-server": "server",
-        origin: process.env.NEXT_CLIENT_HOST_URL || "http://localhost:3000",
-      },
-    });
-    const data = await res.json();
-    if (Array.isArray(data)) {
-      data.forEach((item) => {
-        if (item.type && item.script_id) analyticsConfig[item.type] = item.script_id;
+  // `_document.getInitialProps` runs on EVERY server render, so this fetch was
+  // firing once per page view on every route — checkout included. The analytics
+  // script ids change rarely, so memoise them for the life of the server
+  // process (with a TTL) instead of paying an API round trip per request.
+  if (
+    cachedAnalyticsConfig &&
+    Date.now() - cachedAnalyticsAt < ANALYTICS_TTL_MS
+  ) {
+    analyticsConfig = cachedAnalyticsConfig;
+  } else {
+    try {
+      const baseUrl =
+        (process.env.NEXT_PUBLIC_BASE_URL || "").replace(/\/+$/, "") ||
+        "https://yourdomain.com";
+      const res = await fetch(`${baseUrl}/api/v1/config/get-analytic-scripts`, {
+        headers: {
+          "X-server": "server",
+          origin: process.env.NEXT_CLIENT_HOST_URL || "http://localhost:3000",
+        },
       });
+      // v4.2 wraps the script list in the standard envelope, so a raw
+      // Array.isArray() check silently skipped every analytics tag.
+      const data = getApiList(await res.json());
+      if (Array.isArray(data)) {
+        data.forEach((item) => {
+          if (item.type && item.script_id)
+            analyticsConfig[item.type] = item.script_id;
+        });
+      }
+      cachedAnalyticsConfig = analyticsConfig;
+      cachedAnalyticsAt = Date.now();
+    } catch (err) {
+      console.error("Error fetching analytics config:", err);
     }
-  } catch (err) {
-    console.error("Error fetching analytics config:", err);
   }
 
   return {

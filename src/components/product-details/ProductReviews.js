@@ -1,8 +1,6 @@
 import React, { useRef } from "react";
 import { CustomBoxFullWidth } from "styled-components/CustomStyles.style";
 import ProductReviewCard from "./product-details-section/ProductReviewCard";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
 import { t } from "i18next";
 
 

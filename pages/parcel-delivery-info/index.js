@@ -5,6 +5,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { NoSsr } from "@mui/material";
 import SEO from "../../src/components/seo";
 import CustomContainer from "../../src/components/container";
+import SimpleMobileHeader from "components/common/SimpleMobileHeader";
 import { getImageUrl } from "utils/CustomFunctions";
 import { useDispatch, useSelector } from "react-redux";
 import { useGetConfigData } from "../../src/api-manage/hooks/useGetConfigData";
@@ -34,12 +35,13 @@ const Index = () => {
         title={configData ? `Parcel Deliver information` : "Loading..."}
         image={`${getImageUrl(
           { value: configData?.logo_storage },
-          "business_logo_url",
+          "logo_full_url",
           configData
         )}/${configData?.fav_icon}`}
         businessName={configData?.business_name}
       />
       <MainLayout configData={configData} landingPageData={landingPageData}>
+        <SimpleMobileHeader title="Parcel Delivery Info" />
         <NoSsr>
           <CustomContainer>
             <PercelDelivery configData={configData} />

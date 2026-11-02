@@ -5,18 +5,18 @@ import {
 } from "styled-components/CustomStyles.style";
 import H2 from "../../typographies/H2";
 
-import { Skeleton, styled } from "@mui/material";
+import { Skeleton, Typography, styled } from "@mui/material";
 import { Box } from "@mui/system";
 import { t } from "i18next";
 import Link from "next/link";
 import { useDispatch, useSelector } from "react-redux";
-import Slider from "react-slick";
+import CustomSlider from "components/common/CustomSlider";
 
 import { useGetPopularStoreWithoutInfiniteScroll } from "api-manage/hooks/react-query/store/useGetPopularStore";
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
+import { getStoreRedirectURL } from "helper-functions/handleStoreRedirect";
 import { ModuleTypes } from "helper-functions/moduleTypes";
 import { setNewArrivalStores } from "redux/slices/storedData";
-import "slick-carousel/slick/slick.css";
 import useGetNewArrivalStores from "../../../api-manage/hooks/react-query/store/useGetNewArrivalStores";
 import CustomImageContainer from "../../CustomImageContainer";
 import SpecialOfferCardShimmer from "../../Shimmer/SpecialOfferCardSimmer";
@@ -24,42 +24,71 @@ import NearbyStoreCard from "../../cards/NearbyStoreCard";
 import ClosedNow from "../../closed-now";
 import { HomeComponentsWrapper } from "../HomePageComponents";
 import Menus from "../best-reviewed-items/Menus";
-import { foodNewArrivalsettings, settings } from "./sliderSettings";
+import {
+  FOOD_NEW_ARRIVAL_GAP_BREAKPOINTS,
+  NEW_ARRIVAL_STORES_BREAKPOINTS,
+} from "./sliderSettings";
 import NextImage from "components/NextImage";
+import useGetBrandsList from "api-manage/hooks/react-query/brands/useGetBrandsList";
 
-const ImageWrapper = styled(Box)(({ theme }) => ({
-  position: "relative",
+const FoodNewArrivalCard = styled(Box)(({ theme }) => ({
   display: "flex",
+  flexDirection: "column",
   alignItems: "center",
-  justifyContent: "center",
-  height: "100px",
-  width: "100px",
-  borderRadius: "50%",
-  boxShadow: "0px 4px 10px 0px rgba(0, 54, 85, 0.10)",
-  "&:hover": {
-    boxShadow: "5px 0px 20px rgba(0, 54, 85, 0.15)",
-    img: {
-      transform: "scale(1.04)",
-    },
-  },
-  [theme.breakpoints.down("md")]: {
-    height: "80px",
-    width: "80px",
-  },
+  gap: "8px",
+  width: "100%",
+}));
+
+const FoodNewArrivalImageBox = styled(Box)(({ theme }) => ({
+  position: "relative",
+  width: "93px",
+  height: "93px",
+  flexShrink: 0,
+  borderRadius: "12px",
+  overflow: "hidden",
+  border: `1px solid ${theme.palette.divider}`,
+  backgroundColor: theme.palette.background.paper,
   [theme.breakpoints.down("sm")]: {
-    height: "57px",
-    width: "57px",
+    width: "75px",
+    height: "75px",
   },
 }));
 
 const SliderWrapper = styled(CustomBoxFullWidth)(({ theme }) => ({
   "& .slick-slide": {
-    padding: "0 10px", // Set the desired padding value
+    padding: "0 10px",
   },
   [theme.breakpoints.down("sm")]: {
     "& .slick-slide": {
-      padding: "0px", // Set the desired padding value
+      padding: "0px",
     },
+  },
+}));
+
+const FoodSliderWrapper = styled(CustomBoxFullWidth)(() => ({
+  "& .slick-list": {
+    overflow: "hidden",
+    touchAction: "pan-y",
+  },
+  "& .slick-track": {
+    display: "flex",
+    marginLeft: 0,
+    marginRight: "auto",
+  },
+  "& .slick-slide": {
+    padding: "0 16px 0 0",
+    pointerEvents: "none",
+  },
+  "& .slick-slide.slick-active": {
+    pointerEvents: "auto",
+  },
+  "& .slick-slide:first-child": {
+    paddingLeft: 0,
+  },
+  "& a": {
+    userSelect: "none",
+    WebkitUserDrag: "none",
+    draggable: "false",
   },
 }));
 
@@ -72,7 +101,6 @@ const NewArrivalStores = () => {
   const { configData } = useSelector((state) => state.configData);
   const moduleId = JSON.parse(window.localStorage.getItem("module"))?.id;
   const queryKey = "navbar-stores";
-  const slider = useRef(null);
   const { newArrivalStores } = useSelector((state) => state.storedData);
   const [storeData, setStoreData] = useState([]);
   const {
@@ -109,13 +137,13 @@ const NewArrivalStores = () => {
     } else if (index === 1) {
       //top-rated wise
       const newStores = popularData?.stores.sort(
-        (a, b) => b.avg_rating - a.avg_rating
+        (a, b) => b.avg_rating - a.avg_rating,
       );
       setStoreData(newStores);
     } else {
       //new wise
       const newStores = popularData?.stores.sort(
-        (a, b) => new Date(b.created_at) - new Date(a.created_at)
+        (a, b) => new Date(b.created_at) - new Date(a.created_at),
       );
       setStoreData(newStores);
     }
@@ -131,23 +159,26 @@ const NewArrivalStores = () => {
       }}
     >
       {isLoading ? (
-        <Slider {...settings}>
-          {[...Array(6)].map((item, index) => {
-            return <SpecialOfferCardShimmer key={index} width={290} />;
-          })}
-        </Slider>
+        <CustomSlider
+          items={Array.from({ length: 6 })}
+          renderItem={() => <SpecialOfferCardShimmer width={290} />}
+          arrowVariant="section"
+          slidesPerView={1.2}
+          spaceBetween={16}
+          breakpoints={NEW_ARRIVAL_STORES_BREAKPOINTS}
+        />
       ) : (
-        <Slider {...settings} ref={slider}>
-          {storeData?.map((item, index) => {
-            return (
-              <NearbyStoreCard
-                key={index}
-                configData={configData}
-                item={item}
-              />
-            );
-          })}
-        </Slider>
+        <CustomSlider
+          items={storeData ?? []}
+          getKey={(item, index) => index}
+          renderItem={(item) => (
+            <NearbyStoreCard configData={configData} item={item} />
+          )}
+          arrowVariant="section"
+          slidesPerView={1.2}
+          spaceBetween={16}
+          breakpoints={NEW_ARRIVAL_STORES_BREAKPOINTS}
+        />
       )}
     </SliderWrapper>
   );
@@ -162,70 +193,170 @@ const NewArrivalStores = () => {
                 direction="row"
                 alignItems="center"
                 justifyContent="space-between"
+                py="10px"
+                mb={"10px"}
               >
                 {isLoading ? (
-                  <Skeleton variant="text" width="110px" />
+                  <Skeleton variant="text" width="200px" />
                 ) : (
-                  <H2 text={t("New Arrival Restaurants")} component="h2" />
+                  <Typography
+                    sx={{
+                      fontSize: { xs: "18px", md: "24px" },
+                      fontWeight: 700,
+                      color: "neutral.1050",
+                      lineHeight: 1.1,
+                      letterSpacing: "-1.2px",
+                    }}
+                  >
+                    {t("New Arrival Restaurants")}
+                  </Typography>
                 )}
               </CustomStackFullWidth>
-              <SliderWrapper
-                float="left"
-                sx={{
-                  "& .slick-slide": {
-                    paddingRight: { xs: "10px", sm: "20px" },
-                    paddingY: "10px",
-                  },
-                }}
-              >
-                <Slider {...foodNewArrivalsettings}>
-                  {newArrivalStores?.map((item, index) => {
-                    return (
-                      <Box key={index}>
-                        <Link
-                          href={{
-                            pathname: `/store/[id]`,
-                            query: {
-                              id: `${item?.id}`,
-                              module_id: `${moduleId}`,
-                              module_type: getCurrentModuleType(),
-                              store_zone_id: `${item?.zone_id}`,
-                            },
+              <FoodSliderWrapper>
+                <CustomSlider
+                  items={newArrivalStores ?? []}
+                  getKey={(item, index) => index}
+                  renderItem={(item) => (
+                    <Link href={getStoreRedirectURL(item)}>
+                      <FoodNewArrivalCard>
+                        <FoodNewArrivalImageBox>
+                          <NextImage
+                            src={item?.logo_full_url}
+                            alt={item?.title}
+                            height={93}
+                            width={93}
+                            objectFit="cover"
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                            }}
+                          />
+                          <ClosedNow
+                            active={item?.active}
+                            open={item?.open}
+                            borderRadius="12px"
+                          />
+                        </FoodNewArrivalImageBox>
+                        <Box
+                          sx={{
+                            fontSize: "14px",
+                            fontWeight: 400,
+                            color: "neutral.1050",
+                            letterSpacing: "-0.42px",
+                            lineHeight: 1.2,
+                            textAlign: "center",
+                            width: "100%",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
                           }}
                         >
-                          <ImageWrapper>
-                            <Box
-                              sx={{
-                                borderRadius: "50%",
-                                overflow: "hidden",
-                                width: "100%",
-                                img:{
-                                  width: "100%",
-                                  height: "100%",
-                                }
-                              }}
-                            >
-                              <NextImage
-                                src={item?.logo_full_url}
-                                alt={item?.title}
-                                height={100}
-                                width={100}
-                                objectFit="cover"
-                                borderRadius="50%"
-                              />
-                              <ClosedNow
-                                active={item?.active}
-                                open={item?.open}
-                                borderRadius="50%"
-                              />
-                            </Box>
-                          </ImageWrapper>
-                        </Link>
-                      </Box>
-                    );
-                  })}
-                </Slider>
-              </SliderWrapper>
+                          {item?.name}
+                        </Box>
+                      </FoodNewArrivalCard>
+                    </Link>
+                  )}
+                  arrowVariant="none"
+                  stretchItems={false}
+                  allowOverflowY={false}
+                  loop
+                  autoplay
+                  autoplayDelay={2500}
+                  speed={600}
+                  slidesPerView="auto"
+                  spaceBetween={16}
+                  breakpoints={FOOD_NEW_ARRIVAL_GAP_BREAKPOINTS}
+                />
+              </FoodSliderWrapper>
+            </>
+          )}
+        </>
+      );
+    } else if (
+      getCurrentModuleType() === ModuleTypes.GROCERY ||
+      getCurrentModuleType() === ModuleTypes.ECOMMERCE
+    ) {
+      return (
+        <>
+          {popularData && popularData?.stores?.length > 0 && (
+            <>
+              <CustomStackFullWidth
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                py="10px"
+                mb={"10px"}
+              >
+                {isLoading ? (
+                  <Skeleton variant="text" width="200px" />
+                ) : (
+                  <Typography
+                    sx={{
+                      fontSize: { xs: "18px", md: "24px" },
+                      fontWeight: 700,
+                      color: "neutral.1050",
+                      lineHeight: 1.1,
+                      letterSpacing: "-1.2px",
+                    }}
+                  >
+                    {t("Top Brands")}
+                  </Typography>
+                )}
+              </CustomStackFullWidth>
+              <FoodSliderWrapper>
+                <CustomSlider
+                  items={popularData?.stores ?? []}
+                  getKey={(item, index) => index}
+                  renderItem={(item) => (
+                    <Link href={getStoreRedirectURL(item)}>
+                      <FoodNewArrivalCard>
+                        <FoodNewArrivalImageBox>
+                          <NextImage
+                            src={item?.logo_full_url}
+                            alt={item?.title}
+                            height={93}
+                            width={93}
+                            objectFit="cover"
+                            style={{ width: "100%", height: "100%" }}
+                          />
+                          <ClosedNow
+                            active={item?.active}
+                            open={item?.open}
+                            borderRadius="12px"
+                          />
+                        </FoodNewArrivalImageBox>
+                        <Box
+                          sx={{
+                            fontSize: "14px",
+                            fontWeight: 400,
+                            color: "neutral.1050",
+                            letterSpacing: "-0.42px",
+                            lineHeight: 1.2,
+                            textAlign: "center",
+                            width: "100%",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {item?.name}
+                        </Box>
+                      </FoodNewArrivalCard>
+                    </Link>
+                  )}
+                  arrowVariant="none"
+                  stretchItems={false}
+                  allowOverflowY={false}
+                  loop
+                  autoplay
+                  autoplayDelay={2500}
+                  speed={600}
+                  slidesPerView="auto"
+                  spaceBetween={16}
+                  breakpoints={FOOD_NEW_ARRIVAL_GAP_BREAKPOINTS}
+                />
+              </FoodSliderWrapper>
             </>
           )}
         </>
@@ -262,7 +393,7 @@ const NewArrivalStores = () => {
   };
 
   return (
-    <HomeComponentsWrapper sx={{ paddingTop: "5px", gap: "1rem" }}>
+    <HomeComponentsWrapper sx={{ gap: "1rem" }}>
       {getLayout()}
     </HomeComponentsWrapper>
   );

@@ -24,6 +24,10 @@ export const new_arrivals = "/api/v1/items/new-arrival";
 export const flash_sales = "/api/v1/flash-sales";
 export const flash_sales_items = "api/v1/flash-sales/items";
 export const parcel_category_api = "/api/v1/parcel-category";
+// Zone-scoped parcel attributes. Both take `zone_id` as a query parameter —
+// the `zoneid` header alone answers 422 "The zone id field is required."
+export const parcel_weight_api = "/api/v1/parcel-weight";
+export const parcel_dimension_api = "/api/v1/parcel-dimension";
 export const parcel_video_api = "api/v1/other-banners/video-content";
 export const parcel_whyChoose_api = "api/v1/other-banners/why-choose";
 export const distance_api = "/api/v1/config/distance-api";
@@ -40,6 +44,13 @@ export const parcel_delivery_instructions =
   "/api/v1/customer/order/parcel-instructions";
 export const order_place_api = "/api/v1/customer/order/place";
 export const my_orders_api = "/api/v1/customer/order";
+export const monthly_order_list_api = "/api/v1/customer/monthly-order/list";
+export const monthly_order_remove_api = "/api/v1/customer/monthly-order/remove";
+export const last_orders_api = "/api/v1/customer/order/last";
+export const last_trips_api = "/api/v1/rental/customer/trip/last";
+export const reorder_api = "/api/v1/customer/order-again/reorder";
+export const rental_reorder_api = "/api/v1/rental/user/trip/reorder";
+export const service_rebook_api = "/api/v1/service/customer/booking/re-booking";
 export const user_info_api = "/api/v1/customer/info";
 export const remove_account_api = "/api/v1/customer/remove-account";
 export const profile_update_api = "/api/v1/customer/update-profile";
@@ -48,6 +59,7 @@ export const similar_product_api = "/api/v1/items/related-items";
 export const discounted_product_api = "/api/v1/items/discounted";
 export const discounted_stores_api = "/api/v1/stores/discounted";
 export const popular_items_in_store = "api/v1/items/recommended";
+export const suggested_items_api = "/api/v1/items/suggested";
 export const common_condition_product_in_store =
   "/api/v1/items/common-conditions";
 export const wallet_transactions_list_api =
@@ -83,6 +95,8 @@ export const refund_reasons_api = "/api/v1/customer/order/refund-reasons";
 export const testimonial_api = "/api/v1/testimonial";
 export const categories_details_api = "/api/v1/categories/items";
 export const categories_details_Store_api = "/api/v1/categories/stores";
+export const store_categories_items_api = "/api/v1/store-categories/items";
+export const store_popular_items_api = "/api/v1/stores/popular-items";
 export const categories_Childes_api = "/api/v1/categories/childes";
 export const basic_campaigns_api = "api/v1/campaigns/basic";
 export const basic_campaigns_details_api =
@@ -106,6 +120,7 @@ export const product_review_api = "/api/v1/items/related-items";
 export const item_add_to_cart = "api/v1/customer/cart/add";
 export const cart_all_item_remove = "api/v1/customer/cart/remove";
 export const all_cart_list = "api/v1/customer/cart/list";
+export const cart_get_all = "api/v1/customer/cart/get-all";
 export const cart_item_delete = "api/v1/customer/cart/remove-item";
 export const cart_item_update = "api/v1/customer/cart/update";
 export const last_item_review = "api/v1/customer/review-reminder";
@@ -118,13 +133,22 @@ export const brand_products = "api/v1/brand/items/";
 export const visit_again = "api/v1/customer/visit-again";
 export const paid_ads = "api/v1/advertisement/list";
 export const firebase_otp = "api/v1/auth/firebase-verify-token";
-export const firebase_reset_password="api/v1/auth/firebase-reset-password"
+export const firebase_reset_password = "api/v1/auth/firebase-reset-password";
 export const automated_message = "api/v1/customer/automated-message";
 export const check_zone = "api/v1/zone/check";
 export const subscription_package = "/api/v1/vendor/package-view";
 export const store_registration = "api/v1/auth/vendor/register";
 export const store_business_plan = "/api/v1/vendor/business_plan";
 export const top_offer_near_me = "api/v1/stores/top-offer-near-me";
+export const offers_items_api = "/api/v1/offers/items";
+export const offers_stores_api = "/api/v1/offers/stores";
+export const top_offer_api = "/api/v1/module/top-offer";
+export const happy_hour_running_api = "/api/v1/happy-hour/running";
+export const happy_hour_stores_api = "/api/v1/happy-hour/stores";
+export const bogo_home_api = "/api/v1/bogo/home";
+export const bogo_offers_api = "/api/v1/bogo/offers";
+export const bogo_store_offers_api = "/api/v1/bogo/store-offers";
+export const exclusive_deals_stores_api = "/api/v1/stores/exclusive-deals";
 export const delivery_men_store = "api/v1/delivery-man/store";
 export const vehicle_list = "/api/v1/get-vehicles";
 export const zone_list = "/api/v1/zone/list";
@@ -135,18 +159,62 @@ export const add_wishlist_api = "/api/v1/rental/user/wish-list/add";
 export const delete_wishlist_api = "/api/v1/rental/user/wish-list/remove";
 // export const zone_list = "/api/v1/zone/list";
 export const comfirm_booking_list = "/api/v1/rental/user/cart/get-cart";
-export const latest_provider="api/v1/rental/provider/latest"
-export const provider_banner="api/v1/rental/banners"
+export const latest_provider = "api/v1/rental/provider/latest";
+export const provider_banner = "api/v1/rental/banners";
 export const vehicle_review = "/api/v1/rental/vehicle/reviews";
 export const rental_coupon_list_api = "/api/v1/rental/coupon/list ";
 export const trip_details = "api/v1/rental/user/trip/get-trip-details";
-export const popular_provider="api/v1/rental/provider/popular"
+export const popular_provider = "api/v1/rental/provider/popular";
 export const vehicle_category_list = "/api/v1/rental/vehicle/category-list";
 export const removeAllCartItems = "api/v1/rental/user/cart/remove-cart";
-export const recommended_provider="api/v1/stores/recommended";
+export const recommended_provider = "api/v1/stores/recommended";
+export const quick_delivery_stores_api = "/api/v1/stores/quick-delivery";
 export const tax_api = "api/v1/customer/order/get-Tax";
-export const surge_price="/api/v1/customer/order/get-surge-price"
+// One call for the whole checkout price breakdown — delivery, surge, Pro,
+// tax and cashback. Supersedes assembling those from separate endpoints.
+export const checkout_summary_api = "/api/v1/customer/order/checkout-summary";
+// Zone-scoped area / zip-code list for the delivery-charge rule. `type` says
+// which rule the zone prices by, so the checkout only asks for a selection
+// when it is area_wise or zip_code_wise.
+export const delivery_coverage_list_api = "/api/v1/delivery-charge/coverage-list";
+export const surge_price = "/api/v1/customer/order/get-surge-price";
 export const item_details_api = "/api/v1/items/details";
-export const confirm_return_parcel="api/v1/customer/order/parcel-return"
+export const confirm_return_parcel = "api/v1/customer/order/parcel-return";
 export const wallet_payment_api = "/api/v1/customer/order/wallet-payment";
 export const payment_failed_api = "/api/v1/customer/order/payment-failed";
+export const reels_list_api = "/api/v1/customer/reels/list";
+export const reels_details_api = "/api/v1/customer/reels/details";
+export const reels_stats_api = "/api/v1/customer/reels/stats";
+export const reels_like_api = "/api/v1/customer/reels/like";
+export const reels_visit_api = "/api/v1/customer/reels/visit";
+export const app_download_section_api = "/api/v1/app-download-section";
+export const saved_files_store_api = "/api/v1/customer/saved-files/store";
+export const saved_files_list = "/api/v1/customer/saved-files";
+export const saved_files_delete_all_api =
+  "/api/v1/customer/saved-files/delete-all";
+
+export const pro_plans = "/api/v1/pro-customer/plans";
+export const pro_active_offer = "/api/v1/customer/pro-customer/active-offer";
+export const pro_subscribe = "/api/v1/customer/pro-customer/subscribe";
+export const pro_cancel = "/api/v1/customer/pro-customer/cancel";
+export const pro_faqs = "/api/v1/pro-customer/faqs";
+export const pro_terms = "/api/v1/pro-customer/terms-and-conditions";
+export const trending_searches_api = "/api/v1/trending-searches";
+
+export const ai_chat_conversations_api =
+  "/api/v1/customer/ai-chat/conversations";
+export const ai_chat_messages_api = "/api/v1/customer/ai-chat/messages";
+export const ai_chat_send_api = "/api/v1/customer/ai-chat/send";
+
+export const bundle_home_api = "/api/v1/bundle/home";
+export const bundle_list_api = "/api/v1/bundle/list";
+export const bundle_store_bundles_api = "/api/v1/bundle/store-bundles";
+export const bundle_details_api = "/api/v1/bundle";
+export const bundle_cart_add_api = "/api/v1/customer/cart/bundle/add";
+export const bundle_cart_update_api = "/api/v1/customer/cart/bundle/update";
+export const bundle_cart_remove_api = "/api/v1/customer/cart/bundle/remove";
+export const cart_discount_eligibility_api =
+  "/api/v1/customer/cart/discount-eligibility";
+export const bogo_cart_add_api = "/api/v1/customer/cart/bogo/add";
+export const bogo_cart_update_api = "/api/v1/customer/cart/bogo/update";
+export const bogo_cart_remove_api = "/api/v1/customer/cart/bogo/remove";

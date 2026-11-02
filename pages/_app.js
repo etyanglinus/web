@@ -1,5 +1,6 @@
 import "../src/styles/globals.css";
 import "../src/styles/nprogress.css";
+import "@flaticon/flaticon-uicons/css/all/all.css";
 import { CacheProvider } from "@emotion/react";
 import { Provider as ReduxProvider } from "react-redux";
 import createEmotionCache from "../src/utils/create-emotion-cache";
@@ -21,6 +22,9 @@ import { persistStore } from "redux-persist";
 import { useTranslation } from "react-i18next";
 import useScrollToTop from "../src/api-manage/hooks/custom-hooks/useScrollToTop";
 import { useEffect } from "react";
+import ModuleChecker from "../src/components/module-select/ModuleChecker";
+import ProSubscriptionExpiredModal from "../src/components/pro-plan/ProSubscriptionExpiredModal";
+import App from "next/app";
 
 Router.events.on("routeChangeStart", nProgress.start);
 Router.events.on("routeChangeError", nProgress.done);
@@ -33,6 +37,13 @@ const queryClient = new QueryClient({
     queries: {
       cacheTime: 1000 * 60 * 5, // 5 minutes
       staleTime: 1000 * 60 * 2, // 2 minutes
+      // react-query v3 refetches every active query whenever the tab regains
+      // focus. On the home page that is ~20 requests each time the user
+      // alt-tabs back, for catalogue data that changes far more slowly than
+      // the 2 minute staleTime above.
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      retry: 1,
     },
   },
 });
@@ -42,6 +53,7 @@ function MyApp(props) {
     Component,
     emotionCache = clientSideEmotionCache,
     pageProps,
+    initialSettings,
   } = props;
   const getLayout = Component.getLayout ?? ((page) => page);
   const { t } = useTranslation();
@@ -51,12 +63,18 @@ function MyApp(props) {
 
   // Version check
   useEffect(() => {
+    if (!currentVersion) return;
+
     const storedVersion = localStorage.getItem("appVersion");
     if (storedVersion !== currentVersion) {
+      const storedSettings = localStorage.getItem("settings");
       localStorage.clear();
+      if (storedSettings) {
+        localStorage.setItem("settings", storedSettings);
+      }
       localStorage.setItem("appVersion", currentVersion);
     }
-  }, [currentVersion]);
+  }, []);
 
   return (
     <>
@@ -64,7 +82,7 @@ function MyApp(props) {
       <CacheProvider value={emotionCache}>
         <QueryClientProvider client={queryClient}>
           <ReduxProvider store={store}>
-            <SettingsProvider>
+            <SettingsProvider initialSettings={initialSettings}>
               <SettingsConsumer>
                 {(value) => (
                   <ThemeProvider
@@ -76,7 +94,9 @@ function MyApp(props) {
                   >
                     <RTL direction={value?.settings?.direction}>
                       <CssBaseline />
-                      <Toaster position="top-center" />
+                      <Toaster position="top-center" containerStyle={{ zIndex: 99999 }} />
+                      <ModuleChecker />
+                      <ProSubscriptionExpiredModal />
                       {getLayout(<Component {...pageProps} />)}
                     </RTL>
                   </ThemeProvider>
@@ -84,7 +104,7 @@ function MyApp(props) {
               </SettingsConsumer>
             </SettingsProvider>
           </ReduxProvider>
-          <ReactQueryDevtools initialIsOpen={false} position="bottom-right" />
+          {/* <ReactQueryDevtools initialIsOpen={false} position="bottom-right" /> */}
         </QueryClientProvider>
       </CacheProvider>
     </>
@@ -93,3 +113,26 @@ function MyApp(props) {
 
 export default MyApp;
 export { getServerSideProps };
+
+const getThemeFromCookieHeader = (cookieHeader = "") => {
+  const match = cookieHeader.match(/(?:^|;\s*)themeMode=(dark|light)(?:;|$)/);
+  return match?.[1] || null;
+};
+
+MyApp.getInitialProps = async (appContext) => {
+  const appProps = await App.getInitialProps(appContext);
+  const cookieSource =
+    appContext?.ctx?.req?.headers?.cookie ||
+    (typeof document !== "undefined" ? document.cookie : "");
+
+  const cookieTheme = getThemeFromCookieHeader(cookieSource);
+
+  return {
+    ...appProps,
+    initialSettings: {
+      direction: "ltr",
+      responsiveFontSizes: true,
+      theme: cookieTheme === "dark" ? "dark" : "light",
+    },
+  };
+};

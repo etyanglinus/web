@@ -9,8 +9,9 @@ import { CustomStackFullWidth } from "styled-components/CustomStyles.style";
 import useGetModule from "../../api-manage/hooks/react-query/useGetModule";
 import HomePageComponents from "../home/HomePageComponents";
 import ModuleSelect from "../module-select/ModuleSelect";
+import { getModuleIdentifier, saveModuleParam } from "../../utils/moduleParamManager";
 
-const ModuleWiseLayout = ({ configData, landingPageData }) => {
+const ModuleWiseLayout = ({ configData, landingPageData, routeSection, routeCategory }) => {
 	const [rerender, setRerender] = useState(false);
 	const { selectedModule } = useSelector((state) => state.utilsData);
 	const { data, refetch } = useGetModule();
@@ -43,27 +44,37 @@ const ModuleWiseLayout = ({ configData, landingPageData }) => {
 	};
 
 	const moduleSelectHandler = async (item) => {
+		const moduleIdentifier = getModuleIdentifier(item);
+		
+		// Save module to localStorage and cookie
+		saveModuleParam(item?.id, item?.slug);
+		
+		const { module_id: legacyModuleId, ...restQuery } = router.query;
+		const nextQuery = { ...restQuery, module: moduleIdentifier };
 		if (router.query.search) {
-			await router.replace("/home");
+			const { search, ...restQuery } = nextQuery;
+			await router.replace({ pathname: "/home", query: restQuery });
 		}
 		localStorage.setItem("module", JSON.stringify(item));
 		dispatch(setSelectedModule(item));
+		if (!router.query.search) {
+			router.replace(
+				{ pathname: router.pathname, query: nextQuery },
+				undefined,
+				{ shallow: true }
+			);
+		}
 	};
 
 	return (
 		<CustomStackFullWidth>
-			{!isSmall && data && data.length > 1 && !router.query.search && (
-				<ModuleSelect
-					moduleSelectHandler={moduleSelectHandler}
-					selectedModule={selectedModule}
-					data={data}
-					dispatch={dispatch}
-				/>
-			)}
+			{/* ModuleSelect sidebar hidden */}
 			<HomePageComponents
 				key={rerender}
 				configData={configData}
 				landingPageData={landingPageData}
+				routeSection={routeSection}
+				routeCategory={routeCategory}
 			/>
 		</CustomStackFullWidth>
 	);

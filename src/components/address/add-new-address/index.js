@@ -1,11 +1,13 @@
-import React, { useEffect, useReducer, useState } from "react";
+import React, { useEffect, useReducer, useRef, useState } from "react";
 import { Box, Stack } from "@mui/system";
 import AddIcon from "@mui/icons-material/Add";
 import {
   Button,
+  Divider,
   IconButton,
   Paper,
   Typography,
+  alpha,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
@@ -43,7 +45,15 @@ const AddNewAddress = (props) => {
     openAddressModal,
     editAddress,
     setEditAddress,
+    setAddress,
+    handleLatLng,
+    mode,
+    address,
   } = props;
+  const contactInfoOnly = mode === "contact";
+  const checkoutLocationOnly = mode === "location";
+  console.log({ mode });
+
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("sm"));
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -56,7 +66,7 @@ const AddNewAddress = (props) => {
   const token = localStorage.getItem("token");
   const reduxDispatch = useDispatch();
   const [addressType, setAddressType] = useState(
-    guestUserInfo ? guestUserInfo?.address_type : ""
+    guestUserInfo ? guestUserInfo?.address_type : "",
   );
   const personName = `${profileInfo?.f_name} ${profileInfo?.l_name}`;
 
@@ -76,19 +86,20 @@ const AddNewAddress = (props) => {
   }, [state?.location]);
 
   useEffect(() => {
-    dispatch({
-      type: ACTIONS.setLocation,
-      payload: configData?.default_location,
-    });
+    const initialLocation =
+      editAddress?.latitude && editAddress?.longitude
+        ? { lat: editAddress.latitude, lng: editAddress.longitude }
+        : configData?.default_location;
+    dispatch({ type: ACTIONS.setLocation, payload: initialLocation });
   }, []);
 
   const { data: places, isLoading } = useGetAutocompletePlace(
     state.searchKey,
-    state.enabled
+    state.enabled,
   );
   useEffect(() => {
     if (places) {
-      const tempData = places?.data?.suggestions?.map((item) => ({  
+      const tempData = places?.data?.suggestions?.map((item) => ({
         place_id: item?.placePrediction?.placeId,
         description: `${item?.placePrediction?.structuredFormat?.mainText?.text}, ${item?.placePrediction?.structuredFormat?.secondaryText?.text}`,
       }));
@@ -97,13 +108,13 @@ const AddNewAddress = (props) => {
   }, [places]);
   const { data: geoCodeResults, isFetching: isFetchingGeoCode } = useGetGeoCode(
     state.location,
-    state.geoLocationEnable
+    state.geoLocationEnable,
   );
   useEffect(() => {
     if (geoCodeResults?.results) {
       dispatch({
         type: ACTIONS.setCurrentLocation,
-        payload: geoCodeResults?.results[0]?.formatted_address,
+        payload: geoCodeResults?.results?.[0]?.formatted_address,
       });
     }
   }, [geoCodeResults, state.location]);
@@ -118,7 +129,7 @@ const AddNewAddress = (props) => {
   // //********************Pick Location */
   const { isLoading: isLoading2, data: placeDetails } = useGetPlaceDetails(
     state.placeId,
-    state.placeDetailsEnabled
+    state.placeDetailsEnabled,
   );
   //
   useEffect(() => {
@@ -155,12 +166,27 @@ const AddNewAddress = (props) => {
     reduxDispatch(setOpenAddressModal(false));
   };
 
+  const [zoomToLocationToken, setZoomToLocationToken] = useState(0);
+
+  // Submit without an address type → scroll the selector into view and blink
+  // it so the user sees what's missing (AddressForm calls this via prop).
+  const addressTypeRef = useRef(null);
+  const [addressTypeWarn, setAddressTypeWarn] = useState(false);
+  const handleAddressTypeMissing = () => {
+    addressTypeRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+    setAddressTypeWarn(true);
+    setTimeout(() => setAddressTypeWarn(false), 2400);
+  };
   const getCurrentLocation = () => {
     const locObj = { lat: coords?.latitude, lng: coords?.longitude };
     dispatch({
       type: ACTIONS.setLocation,
       payload: locObj,
     });
+    setZoomToLocationToken((prev) => prev + 1);
   };
 
   return (
@@ -171,150 +197,337 @@ const AddNewAddress = (props) => {
           handleClose={() => reduxDispatch(setOpenAddressModal(false))}
         >
           <Paper
+            elevation={0}
             sx={{
               position: "relative",
-              width: { xs: "300px", sm: "450px", md: "550px", lg: "730px" },
-              p: "1.4rem",
+              width: { xs: "100%", sm: "450px", md: "550px", lg: "730px" },
+              maxHeight: { xs: "100vh", md: "90vh" },
+              overflowY: "auto",
+              backgroundColor: theme.palette.background.paper,
+              borderRadius: { xs: "16px 16px 0 0", md: "16px" },
+              p: 0,
             }}
           >
-            <IconButton
-              onClick={() => reduxDispatch(setOpenAddressModal(false))}
-              sx={{ position: "absolute", top: 0, right: 0 }}
-            >
-              <CloseIcon sx={{ fontSize: "16px" }} />
-            </IconButton>
-
-            <CustomStackFullWidth
+            <Stack
+              direction="row"
               alignItems="center"
-              justifyContent="center"
-              sx={{ marginBottom: "1rem" }}
+              justifyContent="space-between"
+              sx={{
+                px: { xs: 2, md: 3 },
+                py: { xs: 1.5, md: 2 },
+                borderBottom: `1px solid ${theme.palette.divider}`,
+                position: "sticky",
+                top: 0,
+                backgroundColor: theme.palette.background.paper,
+                zIndex: 2,
+              }}
             >
-              {/*<SimpleBar style={{ maxHeight: "60vh" }}></SimpleBar>*/}
-            </CustomStackFullWidth>
-            <Stack position="relative">
-              <GoogleMapComponent
-                height="236px"
-                key={state.rerenderMap}
-                setLocation={(values) => {
-                  dispatch({
-                    type: ACTIONS.setLocation,
-                    payload: values,
-                  });
-                }}
-                location={
-                  editAddress
-                    ? editAddressLocation
-                    : state.location
-                    ? state.location
-                    : {
-                        lat: configData?.default_location?.lat,
-                        lng: configData?.default_location?.lng,
-                      }
-                }
-                setPlaceDetailsEnabled={(value) =>
-                  dispatch({
-                    type: ACTIONS.setPlaceDetailsEnabled,
-                    payload: value,
-                  })
-                }
-                placeDetailsEnabled={state.placeDetailsEnabled}
-                locationEnabled={state.locationEnabled}
-              />
+              <Stack spacing={0.25} minWidth={0}>
+                <Typography
+                  sx={{
+                    fontWeight: 700,
+                    fontSize: { xs: "15px", md: "17px" },
+                    color: theme.palette.text.primary,
+                  }}
+                >
+                  {contactInfoOnly
+                    ? editAddress
+                      ? t("Edit Contact Info")
+                      : t("Add Contact Info")
+                    : editAddress
+                    ? t("Edit Address")
+                    : t("Add New Address")}
+                </Typography>
+                {!contactInfoOnly && (
+                  <Typography
+                    sx={{
+                      fontSize: { xs: "11px", md: "12px" },
+                      color: theme.palette.text.secondary,
+                    }}
+                  >
+                    {t("Pick your location on the map below")}
+                  </Typography>
+                )}
+              </Stack>
               <IconButton
-                onClick={getCurrentLocation}
+                onClick={() => reduxDispatch(setOpenAddressModal(false))}
+                size="small"
                 sx={{
-                  position: "absolute",
-                  bottom: "30%",
-                  right: "10px",
-                  borderRadius: "50%",
-                  color: (theme) => theme.palette.primary.main,
-                  backgroundColor: "background.paper",
+                  flexShrink: 0,
+                  border: `1px solid ${theme.palette.divider}`,
+                  borderRadius: "8px",
+                  color: theme.palette.text.secondary,
+                  backgroundColor: alpha(
+                    theme.palette.neutral?.[400] ||
+                      theme.palette.text.secondary,
+                    0.06,
+                  ),
+                  "&:hover": {
+                    backgroundColor: alpha(
+                      theme.palette.neutral?.[400] ||
+                        theme.palette.text.secondary,
+                      0.14,
+                    ),
+                  },
                 }}
               >
-                <GpsFixedIcon sx={{ fontSize: { xs: "18px", md: "24px" } }} />
+                <CloseIcon sx={{ fontSize: "16px" }} />
               </IconButton>
             </Stack>
 
-            <CustomStackFullWidth pt="20px">
-              <Typography>{t("Label As")}</Typography>
-              <Stack direction="row" spacing={2.5} pt="10px">
-                <AddressTypeStack
-                  value="home"
-                  addressType={
-                    guestUserInfo
-                      ? addressType
-                      : editAddress?.address_type
-                      ? editAddress?.address_type
-                      : addressType
-                  }
-                  onClick={() => handleClick("home")}
-                >
-                  <CustomImageContainer
-                    src={home.src}
-                    width="24px"
-                    height="24px"
-                  />
-                </AddressTypeStack>
-                <AddressTypeStack
-                  value="office"
+            <Box
+              sx={{
+                px: { xs: 2, md: 3 },
+                py: { xs: 2, md: 2.5 },
+              }}
+            >
+              {!contactInfoOnly && (
+                <>
+                  <Stack spacing={0.75} mb={1.5}>
+                    <Typography
+                      sx={{
+                        fontWeight: 600,
+                        fontSize: { xs: "13px", md: "14px" },
+                        color: theme.palette.text.primary,
+                      }}
+                    >
+                      {t("Your Location")}
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        px: 1.5,
+                        py: 1.25,
+                        borderRadius: "10px",
+                        border: `1px solid ${theme.palette.divider}`,
+                        backgroundColor: alpha(
+                          theme.palette.neutral?.[200] ||
+                            theme.palette.background.default,
+                          0.6,
+                        ),
+                        minHeight: "44px",
+                      }}
+                    >
+                      <GpsFixedIcon
+                        sx={{
+                          fontSize: "16px",
+                          color: theme.palette.primary.main,
+                          flexShrink: 0,
+                        }}
+                      />
+                      <Typography
+                        sx={{
+                          fontSize: { xs: "12px", md: "13px" },
+                          color:
+                            state.currentLocation || editAddress?.address
+                              ? theme.palette.text.primary
+                              : theme.palette.text.disabled,
+                          lineHeight: 1.4,
+                          wordBreak: "break-word",
+                        }}
+                      >
+                        {state.currentLocation ||
+                          editAddress?.address ||
+                          t("Move the pin to select your location")}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                  <Stack
+                    position="relative"
+                    sx={{
+                      borderRadius: "12px",
+                      overflow: "hidden",
+                      border: `1px solid ${theme.palette.divider}`,
+                    }}
+                  >
+                    <GoogleMapComponent
+                      height="236px"
+                      key={state.rerenderMap}
+                      setLocation={(values) => {
+                        dispatch({
+                          type: ACTIONS.setLocation,
+                          payload: values,
+                        });
+                      }}
+                      location={
+                        editAddress
+                          ? editAddressLocation
+                          : state.location
+                          ? state.location
+                          : {
+                              lat: configData?.default_location?.lat,
+                              lng: configData?.default_location?.lng,
+                            }
+                      }
+                      setPlaceDetailsEnabled={(value) =>
+                        dispatch({
+                          type: ACTIONS.setPlaceDetailsEnabled,
+                          payload: value,
+                        })
+                      }
+                      placeDetailsEnabled={state.placeDetailsEnabled}
+                      locationEnabled={state.locationEnabled}
+                      zoomToLocationToken={zoomToLocationToken}
+                    />
+                    <IconButton
+                      onClick={getCurrentLocation}
+                      sx={{
+                        position: "absolute",
+                        bottom: 12,
+                        right: 12,
+                        width: { xs: 36, md: 40 },
+                        height: { xs: 36, md: 40 },
+                        borderRadius: "50%",
+                        color: theme.palette.primary.main,
+                        backgroundColor: theme.palette.background.paper,
+                        boxShadow: `0 2px 8px ${alpha("#000", 0.12)}`,
+                        "&:hover": {
+                          backgroundColor: theme.palette.background.paper,
+                          boxShadow: `0 3px 10px ${alpha("#000", 0.16)}`,
+                        },
+                      }}
+                    >
+                      <GpsFixedIcon
+                        sx={{ fontSize: { xs: "18px", md: "22px" } }}
+                      />
+                    </IconButton>
+                  </Stack>
+
+                  <Stack
+                    ref={addressTypeRef}
+                    spacing={1}
+                    mt={{ xs: 2, md: 2.5 }}
+                    sx={{
+                      borderRadius: "10px",
+                      ...(addressTypeWarn && {
+                        "@keyframes addressTypeBlink": {
+                          "0%": { backgroundColor: "transparent" },
+                          "25%": {
+                            backgroundColor: alpha(
+                              theme.palette.error.main,
+                              0.12,
+                            ),
+                          },
+                          "50%": { backgroundColor: "transparent" },
+                          "75%": {
+                            backgroundColor: alpha(
+                              theme.palette.error.main,
+                              0.12,
+                            ),
+                          },
+                          "100%": { backgroundColor: "transparent" },
+                        },
+                        animation: "addressTypeBlink 1.6s ease 2",
+                      }),
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        fontWeight: 600,
+                        fontSize: { xs: "13px", md: "14px" },
+                        color: addressTypeWarn
+                          ? theme.palette.error.main
+                          : theme.palette.text.primary,
+                      }}
+                    >
+                      {t("Address type")}
+                    </Typography>
+                    <Stack direction="row" spacing={1.5}>
+                      <AddressTypeStack
+                        value="home"
+                        addressType={
+                          guestUserInfo
+                            ? addressType
+                            : editAddress?.address_type
+                            ? editAddress?.address_type
+                            : addressType
+                        }
+                        onClick={() => handleClick("home")}
+                      >
+                        <CustomImageContainer
+                          src={home.src}
+                          width="24px"
+                          height="24px"
+                        />
+                      </AddressTypeStack>
+                      <AddressTypeStack
+                        value="office"
+                        addressType={
+                          editAddress?.address_type
+                            ? editAddress?.address_type
+                            : addressType
+                        }
+                        onClick={() => handleClick("office")}
+                      >
+                        <CustomImageContainer
+                          src={office.src}
+                          width="24px"
+                          height="24px"
+                        />
+                      </AddressTypeStack>
+                      <AddressTypeStack
+                        value="other"
+                        addressType={
+                          editAddress?.address_type
+                            ? editAddress?.address_type
+                            : addressType
+                        }
+                        onClick={() => handleClick("other")}
+                      >
+                        <CustomImageContainer
+                          src={plusIcon.src}
+                          width="24px"
+                          height="24px"
+                        />
+                      </AddressTypeStack>
+                    </Stack>
+                  </Stack>
+                </>
+              )}
+
+              <Box mt={{ xs: 2, md: 2.5 }}>
+                <AddressForm
+                  atModal="true"
+                  setAddressType={setAddressType}
                   addressType={
                     editAddress?.address_type
                       ? editAddress?.address_type
                       : addressType
                   }
-                  onClick={() => handleClick("office")}
-                >
-                  <CustomImageContainer
-                    src={office.src}
-                    width="24px"
-                    height="24px"
-                  />
-                </AddressTypeStack>
-                <AddressTypeStack
-                  value="other"
-                  addressType={
-                    editAddress?.address_type
-                      ? editAddress?.address_type
-                      : addressType
+                  configData={configData}
+                  deliveryAddress={
+                    geoCodeResults?.results?.[0]?.formatted_address
                   }
-                  onClick={() => handleClick("other")}
-                >
-                  <CustomImageContainer
-                    src={plusIcon.src}
-                    width="24px"
-                    height="24px"
-                  />
-                </AddressTypeStack>
-              </Stack>
-            </CustomStackFullWidth>
-            <CustomStackFullWidth mt="1.3rem">
-              <AddressForm
-                atModal="true"
-                setAddressType={setAddressType}
-                addressType={
-                  editAddress?.address_type
-                    ? editAddress?.address_type
-                    : addressType
-                }
-                configData={configData}
-                deliveryAddress={geoCodeResults?.results[0]?.formatted_address}
-                personName={
-                  editAddress ? editAddress?.contact_person_name : personName
-                }
-                phone={
-                  editAddress
-                    ? editAddress?.contact_person_number
-                    : profileInfo?.phone
-                }
-                email={profileInfo?.email}
-                lat={editAddress ? editAddress?.lat : state.location?.lat}
-                lng={editAddress ? editAddress?.lng : state.location?.lng}
-                popoverClose={closePopover}
-                refetch={refetch}
-                isRefetcing={isFetchingGeoCode}
-                editAddress={editAddress}
-              />
-            </CustomStackFullWidth>
+                  personName={editAddress?.contact_person_name || personName}
+                  phone={
+                    editAddress?.contact_person_number || profileInfo?.phone
+                  }
+                  email={profileInfo?.email}
+                  lat={
+                    editAddress?.latitude ??
+                    editAddress?.lat ??
+                    state.location?.lat
+                  }
+                  lng={
+                    editAddress?.longitude ??
+                    editAddress?.lng ??
+                    state.location?.lng
+                  }
+                  popoverClose={closePopover}
+                  refetch={refetch}
+                  isRefetcing={isFetchingGeoCode}
+                  editAddress={editAddress}
+                  setAddress={setAddress}
+                  handleLatLng={handleLatLng}
+                  checkoutLocationOnly={checkoutLocationOnly}
+                  contactInfoOnly={contactInfoOnly}
+                  address={address}
+                  onAddressTypeMissing={handleAddressTypeMissing}
+                />
+              </Box>
+            </Box>
           </Paper>
         </CustomModal>
       )}

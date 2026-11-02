@@ -10,9 +10,7 @@ import {Typography, alpha, useMediaQuery, useTheme, Stack} from "@mui/material";
 import CustomImageContainer from "../../../CustomImageContainer";
 import bg from "./assets/bg.png";
 import Slide from "./Slide";
-import Slider from "react-slick";
-import { settings } from "./Settings";
-import CustomSlider from "../../../search/CustomSlider";
+import CustomSlider from "components/common/CustomSlider";
 import { Box } from "@mui/system";
 import { styled } from "@mui/material/styles";
 import CustomCountdown from "../../../countdown";
@@ -28,26 +26,22 @@ const CustomCounterBox = styled(CustomStackFullWidth)(({ theme }) => ({
 }))
 
 const StyledCustomSlider = styled(SliderCustom)(({ theme, isSmall }) => ({
-  "& .slick-dots": {
-    top:"365px",
-    maxWidth:"100px",
-    "& li": {
-      backgroundColor: alpha(theme.palette.primary.main, 0.2),
-      width: "8px",
-      height: "3px",
-      "& button::before": {
-        color: "transparent",
-      },
-    },
-    "& li.slick-active button::before": {
-      backgroundColor: theme.palette.primary.main,
-      width: "8px",
-      height: "3px",
-      borderRadius: "100px",
-    },
+  "& .swiper-pagination": {
+    top: "365px",
+    maxWidth: "100px",
+  },
+  "& .swiper-pagination-bullet": {
+    backgroundColor: alpha(theme.palette.primary.main, 0.2),
+    width: "8px",
+    height: "3px",
+    borderRadius: "100px",
+    opacity: 1,
+  },
+  "& .swiper-pagination-bullet-active": {
+    backgroundColor: theme.palette.primary.main,
   },
   [theme.breakpoints.down("sm")]: {
-    "& .slick-dots": {
+    "& .swiper-pagination": {
       bottom: 0,
       top: "480px",
     },
@@ -94,23 +88,28 @@ const ItemsCampaign = ({ flashSales }) => {
           />
         </CustomCounterBox>}
       <StyledCustomSlider isSmall={isSmall}>
-        <Slider {...settings}>
-          {flashSales?.active_products?.slice(0,5).map((item, index) => {
-            return (
-              <Box key={index}>
-                <ProductCard
-                  item={{ ...item?.item }}
-                  cardheight="340px"
-                  cardFor="flashSale"
-                  cardType="vertical-type"
-                  sold={item?.sold}
-                  stock={item?.available_stock}
-                />
-                {/*<Slide item={item} />*/}
-              </Box>
-            );
-          })}
-        </Slider>
+        <CustomSlider
+          items={flashSales?.active_products?.slice(0, 5) ?? []}
+          getKey={(item, index) => index}
+          renderItem={(item) => (
+            <ProductCard
+              item={{ ...item?.item }}
+              cardheight="340px"
+              cardFor="flashSale"
+              cardType="vertical-type"
+              sold={item?.sold}
+              stock={item?.available_stock}
+            />
+          )}
+          arrowVariant="none"
+          showDots
+          loop
+          autoplay
+          autoplayDelay={4000}
+          speed={800}
+          slidesPerView={1}
+          spaceBetween={0}
+        />
       </StyledCustomSlider>
        <Stack width="100%" alignItems="end" justifyContent="center">
          <Typography   onClick={handleFlashSales} sx={{textDecoration:"underLine",color:theme=>theme.palette.neutral[400]}} fontSize="16px" fontWeight="600"  marginRight="10px">{("See All")}</Typography>

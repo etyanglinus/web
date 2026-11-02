@@ -8,7 +8,7 @@ import { CustomDateFormat } from "components/date-and-time-formators/CustomDateF
 import CloseIcon from "components/icons/CloseIcon";
 import { getAmountWithSign } from "helper-functions/CardHelpers";
 import { t } from "i18next";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setCashbackList } from "redux/slices/cashbackList";
 import CustomImageContainer from "components/CustomImageContainer";
@@ -16,6 +16,7 @@ import cashbackImage from "../../../public/static/cash-back.svg";
 
 const CashBackPopup = () => {
   const [open, setOpen] = useState(false);
+  const lastScrollY = useRef(0);
   const theme = useTheme();
   const dispatch = useDispatch();
   const handleSuccess = (data) => {
@@ -27,6 +28,24 @@ const CashBackPopup = () => {
   useEffect(() => {
     if (!cashbackList) refetch();
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    lastScrollY.current = window.scrollY;
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      if (currentScrollY > lastScrollY.current && open) {
+        setOpen(false);
+      }
+
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [open]);
 
   if (cashbackList?.length > 0)
     return (
@@ -52,7 +71,13 @@ const CashBackPopup = () => {
               padding={"16px"}
               paddingTop={"0"}
               sx={{
-                background: alpha(theme.palette.neutral[1000], 0.2),
+                // neutral[1000] flips to white in dark mode, so the original
+                // alpha overlay painted a light haze over the dark popup. Use a
+                // dark scrim in dark mode and keep the subtle tint in light.
+                background:
+                  theme.palette.mode === "dark"
+                    ? alpha(theme.palette.common.black, 0.55)
+                    : alpha(theme.palette.neutral[1000], 0.2),
                 borderRadius: "8px",
               }}
             >
@@ -108,14 +133,15 @@ const CustomPopupButtonBox = styled(Box)(({ theme }) => ({
   position: "fixed",
   cursor: "pointer",
   display: "flex",
-  bottom: "23px",
-  right: "5%",
+  bottom: "calc(10% + 72px)",
+  right: "24px",
   zIndex: "999",
   [theme.breakpoints.down("lg")]: {
-    bottom: "63px",
+    bottom: "calc(10% + 72px)",
   },
   [theme.breakpoints.down("sm")]: {
-    bottom: "53px",
+    bottom: "150px",
+    right: "16px",
     img: {
       width: "50px",
       height: "50px",
@@ -137,18 +163,19 @@ const CustomOverlay = styled(Box)(({ theme }) => ({
 }));
 const CustomPopupBox = styled(Box)(({ theme }) => ({
   position: "fixed",
-  bottom: "100px",
-  right: "23px",
+  bottom: "calc(10% + 160px)",
+  right: "24px",
   zIndex: "99999",
   overflowY: "auto",
   width: "293px",
-  maxHeight: "calc(100dvh - 200px)",
+  maxHeight: "calc(100dvh - 280px)",
   [theme.breakpoints.down("lg")]: {
-    bottom: "130px",
+    bottom: "calc(10% + 160px)",
   },
   [theme.breakpoints.down("sm")]: {
-    bottom: "110px",
-    maxHeight: "calc(100dvh - 170px)",
+    bottom: "210px",
+    right: "16px",
+    maxHeight: "calc(100dvh - 240px)",
   },
 }));
 const CustomOfferBox = styled(Box)(({ theme }) => ({

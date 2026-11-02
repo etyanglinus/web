@@ -24,19 +24,21 @@ import {
 import CustomImageContainer from "../../../CustomImageContainer";
 import CustomAlert from "../../../alert/CustomAlert";
 import CustomModal from "../../../modal";
-import { zoneWiseModule } from "../../../module-select/ModuleSelect"; 
+import { zoneWiseModule, getCurrentZoneIds } from "../../../module-select/ModuleSelect";
 import CloseIcon from "@mui/icons-material/Close";
 import ErrorIcon from "@mui/icons-material/Error";
 import { setSelectedModule } from "redux/slices/utils";
 import { setCartList } from "redux/slices/cart";
 import useGetBookingList from "api-manage/hooks/react-query/useGetBookingList";
-import useGetAllCartList from "api-manage/hooks/react-query/add-cart/useGetAllCartList";
+import useGetGroupedCart from "api-manage/hooks/react-query/add-cart/useGetGroupedCart";
 import { handleProductValueWithOutDiscount } from "utils/CustomFunctions";
 import { getSelectedVariations } from "components/header/second-navbar/SecondNavbar";
 import { getGuestId } from "helper-functions/getToken";
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
 import useDeleteAllCarts from "api-manage/hooks/react-query/useDeleteAllCarts";
 import toast from "react-hot-toast";
+import { getModuleId } from "helper-functions/getModuleId";
+import { saveModuleParam } from "utils/moduleParamManager";
 
 export const CustomPaper = styled(Paper)(({ theme }) => ({
   //minWidth: "500px",
@@ -99,10 +101,11 @@ export const ModuleSelection = ({
   fromsignup,
   disableAutoFocus,
   setOpenModuleSelection,
-  zoneId
+  zoneId,
+  autoSelect = false,
 }) => {
   const router = useRouter();
-  const [openModal, setOpenModal] = useState(location);
+  const [openModal, setOpenModal] = useState(true);
   const { configData } = useSelector((state) => state.configData);
   const { cartList } = useSelector((state) => state.cart);
   const { selectedModule } = useSelector((state) => state.utilsData);
@@ -110,8 +113,16 @@ export const ModuleSelection = ({
   const { data, refetch, isRefetching, isFetched } = useGetModule();
   const theme = useTheme();
   const dispatch = useDispatch();
-  const {mutate} = useDeleteAllCarts();
+  const { mutate } = useDeleteAllCarts();
   const moduleType = getCurrentModuleType();
+  const pushHomeWithModule = (module) => {
+    const moduleId = module?.slug || module?.id || getModuleId();
+    if (moduleId) {
+      router.push({ pathname: "/home", query: { module: `${moduleId}` } });
+      return;
+    }
+    router.push("/home");
+  };
   const cartListSuccessHandler = (res) => {
     if (res) {
       const tempCartLists = res?.map((item) => ({
@@ -130,20 +141,20 @@ export const ModuleSelection = ({
       }));
       dispatch(setCartList(tempCartLists));
     }
-    router.push("/home");
-      setOpenModal(false);
-      closeModal?.();
+    pushHomeWithModule();
+    setOpenModal(false);
+    closeModal?.();
   };
 
   const {
     data: cartListData,
     refetch: cartListRefetch,
     isLoading,
-  } = useGetAllCartList(getGuestId(),cartListSuccessHandler);
+  } = useGetGroupedCart();
 
   const bookingSuccess = (res) => {
     dispatch(setCartList(res));
-    router.push("/home");
+    pushHomeWithModule();
     setOpenModal(false);
     closeModal?.(selectedModule);
   };
@@ -152,8 +163,6 @@ export const ModuleSelection = ({
     isLoading: bookingListsIsLoading,
     refetch: bookingRefetch,
   } = useGetBookingList(getGuestId(), bookingSuccess);
-
-
 
   const isXSmall = useMediaQuery(theme.breakpoints.down("sm"));
   useEffect(() => {
@@ -171,150 +180,150 @@ export const ModuleSelection = ({
 
   const handleItemOnClick = (item) => {
     localStorage.setItem("module", JSON.stringify(item));
+    saveModuleParam(item?.id, item?.slug);
     dispatch(setSelectedModule(item));
-    if(cartList?.carts?.length > 0 && item?.module_type === "rental"){
+    if (cartList?.carts?.length > 0 && item?.module_type === "rental") {
       const pickupZoneIds = cartList?.carts[0]?.provider?.pickup_zone_id;
       const targetZoneIds = Array.isArray(zoneId) ? zoneId : JSON.parse(zoneId);
-      const inZone = targetZoneIds.some(id => pickupZoneIds?.includes(id.toString()));
-      if(inZone) {
+      const inZone = targetZoneIds.some((id) =>
+        pickupZoneIds?.includes(id.toString()),
+      );
+      if (inZone) {
         toast.success(t("Location set successfully"));
-        router.push("/home");
-            setOpenModal(false);
-            closeModal?.(item);
-      }else{
+        pushHomeWithModule(item);
+        setOpenModal(false);
+        closeModal?.(item);
+      } else {
         mutate(null, {
           onSuccess: (res) => {
             dispatch(setCartList(res));
-            toast.error(t("Your cart has been cleared as the selected zone does not support the previous pickup point."));
-            router.push("/home");
+            toast.error(
+              t(
+                "Your cart has been cleared as the selected zone does not support the previous pickup point.",
+              ),
+            );
+            pushHomeWithModule(item);
             setOpenModal(false);
             closeModal?.();
           },
           onError: (error) => {
             toast.error(error.response.data.message);
-          }
-        })
+          },
+        });
       }
-    }else{
-    router.push("/home");
-    setOpenModal(false);
-    closeModal?.(item);
+    } else {
+      pushHomeWithModule(item);
+      setOpenModal(false);
+      closeModal?.(item);
     }
-    
-    // if (item?.module_type === "rental") {
-    //  bookingRefetch();
-    // } else {
-    //    cartListRefetch();
-    // }
-   
   };
   const handleSingleModule = (data) => {
     dispatch(setSelectedModule(data));
     localStorage.setItem("module", JSON.stringify(data));
+    saveModuleParam(data?.id, data?.slug);
     setOpenModuleSelection?.(false);
-    router.push("/home");
+    closeModal?.(); // close parent modal (MapModal) — removes the backdrop overlay
+    pushHomeWithModule(data);
   };
+  const currentZoneIds = getCurrentZoneIds();
+  const modulesToShow = currentZoneIds ? zoneWiseModule(data) : data;
+  useEffect(() => {
+    if (!autoSelect || !data?.length) return;
+    const first = modulesToShow?.[0];
+    if (!first) return;
+    handleSingleModule(first);
+  }, [autoSelect, data]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (autoSelect) return null;
+
   const innerContent = () => {
-    if (isFetched) {
-      if (data?.length === 0) {
-        return (
-          <CustomModal openModal={openModal} handleClose={handleCloseModal}>
-            <CustomPaper sx={{ position: "relative" }}>
-              <IconButton
-                onClick={() => handleCloseModal?.()}
-                sx={{ position: "absolute", top: 5, right: 8 }}
-              >
-                <CloseIcon />
-              </IconButton>
-              <CustomStackFullWidth
-                alignItems="center"
-                justifyContent="center"
-                spacing={{ xs: 2, sm: 2 }}
-              >
-                <ErrorIcon sx={{ fontSize: "70px", color: "red" }} />
-                <Alert severity="error">
-                  <AlertTitle>{t("No module found")}</AlertTitle>
-                  {t("Contact with the site owner to activate modules.")}
-                </Alert>
-              </CustomStackFullWidth>
-            </CustomPaper>
-          </CustomModal>
-        );
-      }  else {
-        return (
-          <CustomModal
-            openModal={openModal}
-            handleClose={handleCloseModal}
-            disableAutoFocus={disableAutoFocus}
-          >
-            <CustomPaper>
-              <CustomStackFullWidth spacing={2}>
-                <Typography variant="h6" textAlign="center">
-                  {t(module_header)}
-                </Typography>
-                <Grid container spacing={isXSmall ? 1 : 2} width="98%">
-                  {data &&
-                    (data?.length > 0 ? (
-                      zoneWiseModule?.(data)?.map((item, index) => {
-                        return (
-                          <Grid item xs={4} sm={4} md={4} key={index}>
-                            <CustomChildPaper
-                              elevation={10}
-                              onClick={() => handleItemOnClick(item)}
-                              is_previously_selected={
-                                isSelected?.module_type === item?.module_type &&
-                                isSelected?.id === item?.id
-                              }
-                            >
-                              <CustomStackFullWidth
-                                alignItems="center"
-                                justifyContent="center"
-                                spacing={1}
-                              >
-                                <CustomImageContainer
-                                  src={item?.icon_full_url}
-                                  alt="mobile"
-                                  height={isXSmall ? "40px" : "100px"}
-                                  width={isXSmall ? "40px" : "100px"}
-                                  objectFit="cover"
-                                />
-                                <Typography
-                                  fontSize={{ xs: "13px", sm: "16px" }}
-                                  sx={{
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    display: "-webkit-box",
-                                    WebkitLineClamp: "1",
-                                    WebkitBoxOrient: "vertical",
-                                
-                                  }}
-                                >
-                                  {item?.module_name}
-                                </Typography>
-                              </CustomStackFullWidth>
-                            </CustomChildPaper>
-                          </Grid>
-                        );
-                      })
-                    ) : (
-                      <p>deactivated module handle</p>
-                    ))}
-                  <Grid item xs={12}>
-                    <CustomAlert type="info" text={module_bottom} />
-                  </Grid>
-                </Grid>
-              </CustomStackFullWidth>
-            </CustomPaper>
-          </CustomModal>
-        );
-      }
-    } else {
+    if (modulesToShow?.length === 0) {
       return (
         <CustomModal openModal={openModal} handleClose={handleCloseModal}>
+          <CustomPaper sx={{ position: "relative" }}>
+            <IconButton
+              onClick={() => handleCloseModal?.()}
+              sx={{ position: "absolute", top: 5, right: 8 }}
+            >
+              <CloseIcon />
+            </IconButton>
+            <CustomStackFullWidth
+              alignItems="center"
+              justifyContent="center"
+              spacing={{ xs: 2, sm: 2 }}
+            >
+              <ErrorIcon sx={{ fontSize: "70px", color: "red" }} />
+              <Alert severity="error">
+                <AlertTitle>{t("No module found")}</AlertTitle>
+                {t("Contact with the site owner to activate modules.")}
+              </Alert>
+            </CustomStackFullWidth>
+          </CustomPaper>
+        </CustomModal>
+      );
+    } else {
+      return (
+        <CustomModal
+          openModal={openModal}
+          handleClose={handleCloseModal}
+          disableAutoFocus={disableAutoFocus}
+        >
           <CustomPaper>
-            <Grid container spacing={isXSmall ? 0.5 : 2}>
-              <Shimmer />
-            </Grid>
+            <CustomStackFullWidth spacing={2}>
+              <Typography variant="h6" textAlign="center">
+                {t(module_header)}
+              </Typography>
+              <Grid container spacing={isXSmall ? 1 : 2} width="98%">
+                {modulesToShow &&
+                  (modulesToShow?.length > 0 ? (
+                    modulesToShow?.map((item, index) => {
+                      return (
+                        <Grid item xs={4} sm={4} md={4} key={index}>
+                          <CustomChildPaper
+                            elevation={10}
+                            onClick={() => handleItemOnClick(item)}
+                            is_previously_selected={
+                              isSelected?.module_type === item?.module_type &&
+                              isSelected?.id === item?.id
+                            }
+                          >
+                            <CustomStackFullWidth
+                              alignItems="center"
+                              justifyContent="center"
+                              spacing={1}
+                            >
+                              <CustomImageContainer
+                                src={item?.icon_full_url}
+                                alt="mobile"
+                                height={isXSmall ? "40px" : "100px"}
+                                width={isXSmall ? "40px" : "100px"}
+                                objectFit="cover"
+                              />
+                              <Typography
+                                fontSize={{ xs: "13px", sm: "16px" }}
+                                sx={{
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  display: "-webkit-box",
+                                  WebkitLineClamp: "1",
+                                  WebkitBoxOrient: "vertical",
+                                }}
+                              >
+                                {item?.module_name}
+                              </Typography>
+                            </CustomStackFullWidth>
+                          </CustomChildPaper>
+                        </Grid>
+                      );
+                    })
+                  ) : (
+                    <p>deactivated module handle</p>
+                  ))}
+                <Grid item xs={12}>
+                  <CustomAlert type="info" text={module_bottom} />
+                </Grid>
+              </Grid>
+            </CustomStackFullWidth>
           </CustomPaper>
         </CustomModal>
       );

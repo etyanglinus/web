@@ -7,7 +7,7 @@ import {
   TextField,
 } from "@mui/material";
 
-import RecentAddresses from "../../../components/global/RecentAddress";
+import RecentAddresses from "../../../../../../common/RecentAddress";
 import MapModal from "components/Map/MapModal";
 
 const RentalSearchLocation = (props) => {
@@ -19,6 +19,7 @@ const RentalSearchLocation = (props) => {
     onFocus,
     value,
     endIcon,
+    startIcon,
     pickLocationFormAddress,
 
     height = "45px",
@@ -27,8 +28,9 @@ const RentalSearchLocation = (props) => {
     getCurrentLocation,
     // isSetCurrentLocation,
     fromHome,
-    setOpenMap,focusedField
-
+    setOpenMap,
+    focusedField,
+    onEnterKey,
   } = props;
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -83,7 +85,7 @@ const RentalSearchLocation = (props) => {
       sx={{ width: width, maxWidth: "100%" }}
       PaperComponent={(props) => (
         <>
-          {!value?.description && focusedField==="destination" ? (
+          {!value?.description && focusedField === "destination" ? (
             <div>
               <RecentAddresses
                 pickLocationFormAddress={pickLocationFormAddress}
@@ -110,6 +112,12 @@ const RentalSearchLocation = (props) => {
           label={label}
           placeholder={label}
           onChange={(event) => HandleChangeForSearch(event)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && onEnterKey) {
+              event.preventDefault();
+              onEnterKey(event);
+            }
+          }}
           onBlur={() => {
             timeoutRef.current = setTimeout(() => {
               setDropdownOpen(false);
@@ -121,7 +129,7 @@ const RentalSearchLocation = (props) => {
               padding: "5.5px 4px 7.5px 6px",
               paddingRight: "10px !important",
               "& fieldset": {
-                border: `1px solid  ${theme=>theme.palette.neutral[300]}`,
+                border: `1px solid  ${(theme) => theme.palette.neutral[300]}`,
               },
               "&:hover fieldset": {
                 borderColor: "#888",
@@ -131,6 +139,12 @@ const RentalSearchLocation = (props) => {
                 borderColor: (theme) => alpha(theme.palette.primary.main, 0.4),
               },
             },
+            // Keep the input text from sliding under the start icon.
+            "& .MuiAutocomplete-input": {
+              paddingLeft: startIcon ? "6px !important" : undefined,
+              minWidth: 0,
+              textOverflow: "ellipsis",
+            },
             "& .MuiInputLabel-root": {
               padding: "0 4px",
               transform: "translate(14px, -6px) scale(0.75)",
@@ -138,6 +152,14 @@ const RentalSearchLocation = (props) => {
           }}
           InputProps={{
             ...params.InputProps,
+            startAdornment: startIcon ? (
+              <InputAdornment
+                position="start"
+                sx={{ ml: 0.5, mr: 1, flexShrink: 0 }}
+              >
+                {startIcon}
+              </InputAdornment>
+            ) : null,
             endAdornment: endIcon ? (
               <InputAdornment position="end">{endIcon}</InputAdornment>
             ) : null, // Render the endIcon if provided

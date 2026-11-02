@@ -1,7 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import Dialog from "@mui/material/Dialog";
-import { Stack } from "@mui/material";
+import { CircularProgress, Stack } from "@mui/material";
 import DialogTitle from "@mui/material/DialogTitle";
 import Typography from "@mui/material/Typography";
 import DialogActions from "@mui/material/DialogActions";
@@ -42,16 +42,22 @@ const CustomDialogConfirmStyle = (props) => {
             width="100%"
             spacing={{ xs: 1, sm: 2, md: 3 }}
           >
-            <CustomButtonCancel variant="contained" onClick={onClose}>
-              {t("Cancel")}
-            </CustomButtonCancel>
             <CustomButtonSuccess
               loading={isLoading}
+              loadingIndicator={
+                <CircularProgress
+                  size={18}
+                  sx={{ color: "whiteContainer.main" }}
+                />
+              }
               variant="contained"
               onClick={onSuccess}
             >
               {t("Yes")}
             </CustomButtonSuccess>
+            <CustomButtonCancel variant="contained" onClick={onClose}>
+              {t("Cancel")}
+            </CustomButtonCancel>
           </Stack>
         </DialogActions>
       </WrapperForCustomDialogConfirm>

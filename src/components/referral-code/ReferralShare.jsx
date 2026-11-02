@@ -65,9 +65,13 @@ import CustomModal from "../custom-component/CustomModal";
 import CloseIcon from "@mui/icons-material/Close";
 import { t } from "i18next";
 import CustomCopyWithTooltip from "../custom-copy-with-tooltip";
-import { SliderCustom } from "../../styled-components/CustomStyles.style";
-import Slider from "react-slick";
-import { referralSettings } from "./ReferralSettings";
+import CustomSlider from "../common/CustomSlider";
+
+// react-slick row of share icons had no gap convention; use the standard
+// 16px mobile / 20px desktop (>=901px) gap.
+const referralShareBreakpoints = {
+  901: { spaceBetween: 20 },
+};
 
 const ReferralShare = ({ referralCode, horizontal, size }) => {
   const [currentUrl, setCurrentUrl] = useState(null);
@@ -148,71 +152,123 @@ const ReferralShare = ({ referralCode, horizontal, size }) => {
               <CloseIcon sx={{ fontSize: "22px" }} />
             </IconButton>
             <Typography fontSize="16px">{t("Share")}</Typography>
-            <SliderCustom nopadding="true">
-              <Slider {...referralSettings}>
-                <FacebookMessengerShareButton
-                  url={shareUrl}
-                  appId={fb_app_id}
-                  quote={shareUrl}
-                >
-                  <FacebookMessengerIcon size={size ? size : 40} round />
-                </FacebookMessengerShareButton>
-                <TwitterShareButton url={shareUrl}>
-                  <TwitterIcon size={size ? size : 40} round />
-                </TwitterShareButton>
-                <WhatsappShareButton
-                  url={shareUrl}
-                  separator=":: "
-                  title={title}
-                  quote={shareUrl}
-                >
-                  <WhatsappIcon size={size ? size : 40} round />
-                </WhatsappShareButton>
-                <LinkedinShareButton
-                  title={title}
-                  url={currentUrl}
-                  source={currentUrl}
-                  summary={shareUrl}
-                >
-                  <LinkedinIcon size={size ? size : 40} round />
-                </LinkedinShareButton>
-                <TelegramShareButton url={shareUrl}>
-                  <TelegramIcon size={size ? size : 40} round />
-                </TelegramShareButton>
-                <EmailShareButton
-                  url={currentUrl}
-                  subject={title}
-                  body={shareUrl}
-                >
-                  <EmailIcon size={size ? size : 40} round />
-                </EmailShareButton>
-                <RedditShareButton
-                  title={title}
-                  url={shareUrl}
-                  windowWidth={660}
-                  windowHeight={460}
-                >
-                  <RedditIcon size={size ? size : 40} round />
-                </RedditShareButton>
-                <TumblrShareButton
-                  url={String(window.location.origin)}
-                  title={title}
-                  caption={shareUrl}
-                >
-                  <TumblrIcon size={size ? size : 40} round />
-                </TumblrShareButton>
-                <LivejournalShareButton
-                  url={shareUrl}
-                  title={title}
-                  description={shareUrl}
-                >
-                  <LivejournalIcon size={size ? size : 40} round />
-                </LivejournalShareButton>
-                <LineShareButton url={shareUrl} title={title}>
-                  <LineIcon size={size ? size : 40} round />
-                </LineShareButton>
-              </Slider>
-            </SliderCustom>
+            <CustomSlider
+              items={[
+                "facebookMessenger",
+                "twitter",
+                "whatsapp",
+                "linkedin",
+                "telegram",
+                "email",
+                "reddit",
+                "tumblr",
+                "livejournal",
+                "line",
+              ]}
+              getKey={(kind) => kind}
+              renderItem={(kind) => {
+                switch (kind) {
+                  case "facebookMessenger":
+                    return (
+                      <FacebookMessengerShareButton
+                        url={shareUrl}
+                        appId={fb_app_id}
+                        quote={shareUrl}
+                      >
+                        <FacebookMessengerIcon size={size ? size : 40} round />
+                      </FacebookMessengerShareButton>
+                    );
+                  case "twitter":
+                    return (
+                      <TwitterShareButton url={shareUrl}>
+                        <TwitterIcon size={size ? size : 40} round />
+                      </TwitterShareButton>
+                    );
+                  case "whatsapp":
+                    return (
+                      <WhatsappShareButton
+                        url={shareUrl}
+                        separator=":: "
+                        title={title}
+                        quote={shareUrl}
+                      >
+                        <WhatsappIcon size={size ? size : 40} round />
+                      </WhatsappShareButton>
+                    );
+                  case "linkedin":
+                    return (
+                      <LinkedinShareButton
+                        title={title}
+                        url={currentUrl}
+                        source={currentUrl}
+                        summary={shareUrl}
+                      >
+                        <LinkedinIcon size={size ? size : 40} round />
+                      </LinkedinShareButton>
+                    );
+                  case "telegram":
+                    return (
+                      <TelegramShareButton url={shareUrl}>
+                        <TelegramIcon size={size ? size : 40} round />
+                      </TelegramShareButton>
+                    );
+                  case "email":
+                    return (
+                      <EmailShareButton
+                        url={currentUrl}
+                        subject={title}
+                        body={shareUrl}
+                      >
+                        <EmailIcon size={size ? size : 40} round />
+                      </EmailShareButton>
+                    );
+                  case "reddit":
+                    return (
+                      <RedditShareButton
+                        title={title}
+                        url={shareUrl}
+                        windowWidth={660}
+                        windowHeight={460}
+                      >
+                        <RedditIcon size={size ? size : 40} round />
+                      </RedditShareButton>
+                    );
+                  case "tumblr":
+                    return (
+                      <TumblrShareButton
+                        url={String(window.location.origin)}
+                        title={title}
+                        caption={shareUrl}
+                      >
+                        <TumblrIcon size={size ? size : 40} round />
+                      </TumblrShareButton>
+                    );
+                  case "livejournal":
+                    return (
+                      <LivejournalShareButton
+                        url={shareUrl}
+                        title={title}
+                        description={shareUrl}
+                      >
+                        <LivejournalIcon size={size ? size : 40} round />
+                      </LivejournalShareButton>
+                    );
+                  case "line":
+                    return (
+                      <LineShareButton url={shareUrl} title={title}>
+                        <LineIcon size={size ? size : 40} round />
+                      </LineShareButton>
+                    );
+                  default:
+                    return null;
+                }
+              }}
+              arrowVariant="inline"
+              stretchItems={false}
+              slidesPerView="auto"
+              spaceBetween={16}
+              breakpoints={referralShareBreakpoints}
+            />
             <CodePreviewWrapper
               direction="row"
               alignItems="center"

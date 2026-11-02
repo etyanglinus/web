@@ -8,6 +8,7 @@ importScripts(
 const firebaseConfig = {
   apiKey: "AIzaSyBhPVJQjVKv5BqlJIyg1p8FtyLlqBzY1sg",
   authDomain: "fasta-rides-457315.firebaseapp.com",
+  databaseURL: "https://fasta-rides-457315-default-rtdb.firebaseio.com",
   projectId: "fasta-rides-457315",
   storageBucket: "fasta-rides-457315.firebasestorage.app",
   messagingSenderId: "833886382257",

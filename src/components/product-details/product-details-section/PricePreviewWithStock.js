@@ -15,10 +15,7 @@ const PricePreviewWithStock = (props) => {
 				display="flex"
 				alignItems="center"
 				fontWeight="700"
-				color={theme.palette.primary.main}
-				sx={{
-					fontSize: { xs: "15px", sm: "24px" },
-				}}
+				sx={{ fontSize: { xs: "15px", sm: "24px", md: "32px" }, color: "neutral.1050" }}
 				component="h2"
 			>
 				{price ===
@@ -46,7 +43,7 @@ const PricePreviewWithStock = (props) => {
 									marginLeft="8px"
 									fontWeight="400"
 									color={theme.palette.customColor.textGray}
-									sx={{ fontSize: { xs: "13px", sm: "16px" } }}
+									sx={{ fontSize: { xs: "13px", sm: "16px", md: "18px" } }}
 								>
 									<del>{getAmountWithSign(price)}</del>
 								</Typography>
@@ -58,118 +55,63 @@ const PricePreviewWithStock = (props) => {
 		);
 	};
 	const handlePriceRange = (priceOne, priceTwo) => {
+		const minPrice = Math.min(Number(priceOne), Number(priceTwo));
+		const maxPrice = Math.max(Number(priceOne), Number(priceTwo));
 		return (
 			<Typography
 				marginTop="5px !important"
 				display="flex"
 				alignItems="center"
 				fontWeight="700"
-				color={theme.palette.primary.main}
-				sx={{
-					fontSize: { xs: "15px", sm: "24px" },
-				}}
+				sx={{ fontSize: { xs: "15px", sm: "24px", md: "32px" }, color: "neutral.1050" }}
 			>
-				{state?.modalData?.[0]?.discount === 0 ? (
+				{Number(state?.modalData?.[0]?.discount ?? 0) === 0 ? (
 					<>
-						{priceOne > priceTwo ? (
-							<>
-								{`${getAmountWithSign(
-									getDiscountedAmount(
-										priceOne,
-										state.modalData[0]?.discount,
-										state.modalData[0]?.discount_type,
-										state.modalData[0]?.store_discount
-									)
-								)} - ${getAmountWithSign(
-									getDiscountedAmount(
-										priceTwo,
-										state.modalData[0]?.discount,
-										state.modalData[0]?.discount_type,
-										state.modalData[0]?.store_discount
-									)
-								)} `}
-							</>
-						) : (
-							<>
-								{`  ${getAmountWithSign(
-									getDiscountedAmount(
-										priceTwo,
-										state.modalData[0]?.discount,
-										state.modalData[0]?.discount_type,
-										state.modalData[0]?.store_discount
-									)
-								)}-${getAmountWithSign(
-									getDiscountedAmount(
-										priceOne,
-										state.modalData[0]?.discount,
-										state.modalData[0]?.discount_type,
-										state.modalData[0]?.store_discount
-									)
-								)} `}
-							</>
-						)}
+						{`${getAmountWithSign(
+							getDiscountedAmount(
+								minPrice,
+								state.modalData[0]?.discount,
+								state.modalData[0]?.discount_type,
+								state.modalData[0]?.store_discount
+							)
+						)} - ${getAmountWithSign(
+							getDiscountedAmount(
+								maxPrice,
+								state.modalData[0]?.discount,
+								state.modalData[0]?.discount_type,
+								state.modalData[0]?.store_discount
+							)
+						)} `}
 					</>
 				) : (
 					<>
-						{priceOne < priceTwo ? (
-							<>{`${getAmountWithSign(
-								getDiscountedAmount(
-									priceOne,
-									state.modalData[0]?.discount,
-									state.modalData[0]?.discount_type,
-									state.modalData[0]?.store_discount
-								)
-							)} - ${getAmountWithSign(
-								getDiscountedAmount(
-									priceTwo,
-									state.modalData[0]?.discount,
-									state.modalData[0]?.discount_type,
-									state.modalData[0]?.store_discount
-								)
-							)} `}</>
-						) : (
-							<>
-								{` ${getAmountWithSign(
-									getDiscountedAmount(
-										priceTwo,
-										state.modalData[0]?.discount,
-										state.modalData[0]?.discount_type,
-										state.modalData[0]?.store_discount
-									)
-								)} -${getAmountWithSign(
-									getDiscountedAmount(
-										priceOne,
-										state.modalData[0]?.discount,
-										state.modalData[0]?.discount_type,
-										state.modalData[0]?.store_discount
-									)
-								)}`}
-							</>
-						)}
+						{`${getAmountWithSign(
+							getDiscountedAmount(
+								minPrice,
+								state.modalData[0]?.discount,
+								state.modalData[0]?.discount_type,
+								state.modalData[0]?.store_discount
+							)
+						)} - ${getAmountWithSign(
+							getDiscountedAmount(
+								maxPrice,
+								state.modalData[0]?.discount,
+								state.modalData[0]?.discount_type,
+								state.modalData[0]?.store_discount
+							)
+						)} `}
 
 						<Typography
 							variant="body1"
 							marginLeft="8px"
 							fontWeight="400"
 							color={theme.palette.customColor.textGray}
-							sx={{ fontSize: { xs: "13px", sm: "16px" } }}
+							sx={{ fontSize: { xs: "13px", sm: "16px", md: "18px" } }}
 						>
 							<del>
-								{priceOne < priceTwo ? (
-									<>
-										{" "}
-										{`${getAmountWithSign(
-											priceOne
-										)} - ${getAmountWithSign(priceTwo)}`}
-									</>
-								) : (
-									<>
-										{" "}
-										{` ${getAmountWithSign(
-											priceTwo
-										)}-${getAmountWithSign(priceOne)} `}
-									</>
-								)}
+								{`${getAmountWithSign(minPrice)} - ${getAmountWithSign(
+									maxPrice
+								)}`}
 							</del>
 						</Typography>
 					</>
@@ -179,29 +121,23 @@ const PricePreviewWithStock = (props) => {
 	};
 	const handlePrice = () => {
 		if (state?.modalData[0]?.variations?.length > 0) {
-			if (
-				Number.parseInt(state?.modalData[0]?.variations?.[0]?.price) ===
-				Number.parseInt(
-					state?.modalData[0]?.variations?.[
-						state?.modalData[0]?.variations?.length - 1
-					]?.price
-				)
-			) {
-				return (
-					<>
-						{priceWithOrWithoutDiscount(
-							state?.modalData[0]?.variations?.[0]?.price
-						)}
-					</>
-				);
+			const variationPrices = state?.modalData[0]?.variations
+				?.map((variation) => Number(variation?.price))
+				?.filter((price) => Number.isFinite(price));
+			if (!variationPrices?.length) {
+				return <>{priceWithOrWithoutDiscount(state?.modalData[0]?.price)}</>;
+			}
+			const minVariationPrice = Math.min(...variationPrices);
+			const maxVariationPrice = Math.max(...variationPrices);
+
+			if (minVariationPrice === maxVariationPrice) {
+				return <>{priceWithOrWithoutDiscount(minVariationPrice)}</>;
 			} else {
 				return (
 					<Stack direction="row" alignItems="center">
 						{handlePriceRange(
-							state?.modalData[0]?.variations?.[0]?.price,
-							state?.modalData[0]?.variations?.[
-								state?.modalData[0]?.variations?.length - 1
-							]?.price
+							minVariationPrice,
+							maxVariationPrice
 						)}
 					</Stack>
 				);

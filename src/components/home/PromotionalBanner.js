@@ -9,21 +9,21 @@ import NextImage from "components/NextImage";
 
 export const BannerWrapper = styled(Box)(({ theme }) => ({
   width: "100%",
-  height: "360px",
+  // Banner artwork is supplied at 5:1; the width drives the height so the
+  // image is never letterboxed or cropped differently per breakpoint.
+  aspectRatio: "5 / 1",
   position: "relative",
-  marginTop: "20px",
-  img:{
+  overflow: "hidden",
+  borderRadius: theme.shape.borderRadius,
+  img: {
     width: "100%",
     height: "100%",
-
+    display: "block",
   },
   "&:hover": {
     img: {
       transform: "scale(1.02)",
     },
-  },
-  [theme.breakpoints.down("sm")]: {
-    height: "120px",
   },
 }));
 export const ContentWrapper = styled(CustomStackFullWidth)(({ theme }) => ({
@@ -52,19 +52,18 @@ const PromotionalBanner = ({ bannerData }) => {
     header: "Up To 50% Off All Product.",
     subHeader: "We provide best quality & fresh grocery items",
   };
-
   return (
     <>
-      {bannerData?.bottom_section_banner && (
+      {bannerData?.bottom_section_banner_full_url ? (
         <BannerWrapper>
           <NextImage
             src={bannerData?.bottom_section_banner_full_url}
-            height={360}
+            height={288}
             width={1440}
             objectFit="cover"
           />
         </BannerWrapper>
-      )}
+      ) : null}
     </>
   );
 };

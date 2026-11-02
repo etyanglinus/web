@@ -1,4 +1,6 @@
 import { Typography } from "@mui/material";
+import { handleStoreRedirect } from "../../../../helper-functions/handleStoreRedirect";
+
 import { Stack } from "@mui/system";
 import { useRouter } from "next/router";
 import React, { useEffect } from "react";
@@ -14,6 +16,7 @@ import {
 import ViewMore from "../ViewMore";
 import NavStoreShimmer from "./NavStoreShimmer";
 import { getCurrentModuleType } from "../../../../helper-functions/getCurrentModuleType";
+import VerifiedStoreBadge from "../../../../components/cards/VerifiedStoreBadge";
 
 const NavNewStore = () => {
   const { configData } = useSelector((state) => state.configData);
@@ -34,22 +37,7 @@ const NavNewStore = () => {
     }
   }, [data]);
   const handleClick = (item) => {
-    if (getCurrentModuleType() === "rental") {
-      router.push({
-        pathname: `/rental/provider-details/${item?.id}`,
-      });
-    } else {
-      router.push({
-        pathname: "/store/[id]",
-        query: {
-          id: `${item?.slug ? item?.slug : item?.id}`,
-          module_id: `${getModuleId()}`,
-          module_type: getCurrentModuleType(),
-          store_zone_id: `${item?.zone_id}`,
-          distance: item?.distance,
-        },
-      });
-    }
+    handleStoreRedirect(item, router);
   };
 
   return (
@@ -64,6 +52,8 @@ const NavNewStore = () => {
               return (
                 <Stack
                   key={store.id}
+                  direction="row"
+                  alignItems="center"
                   width="100%"
                   onClick={() => handleClick(store)}
                 >
@@ -82,6 +72,7 @@ const NavNewStore = () => {
                   >
                     {store.name}
                   </CustomTypographyGray>
+                  <VerifiedStoreBadge verified={store?.verified_seller} fontSize="14px" />
                 </Stack>
               );
             })}
@@ -92,7 +83,7 @@ const NavNewStore = () => {
           </Stack>
         )}
         <Stack width="70%" justifyContent="flex-start" alignItems="center">
-          <ViewMore redirect={getCurrentModuleType() === "rental"? "/rental/provider/latest": "/store/latest"} />
+          <ViewMore redirect={getCurrentModuleType() === "rental" ? "/rental/provider/latest" : "/store/new"} />
         </Stack>
       </Stack>
     </CustomStackFullWidth>

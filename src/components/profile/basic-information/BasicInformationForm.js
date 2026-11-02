@@ -5,6 +5,7 @@ import {
   Stack,
   styled,
   TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import { useFormik } from "formik";
@@ -22,7 +23,6 @@ import {
 import { setUser } from "redux/slices/profileInfo";
 import { useDispatch } from "react-redux";
 import ImageAddIcon from "../../single-file-uploader-with-preview/ImageAddIcon";
-import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import InputAdornment from "@mui/material/InputAdornment";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
@@ -35,6 +35,7 @@ import OtpForm from "components/auth/sign-up/OtpForm";
 import { auth } from "firebase";
 import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import { useFireBaseOtpVerify } from "api-manage/hooks/react-query/forgot-password/useFIreBaseOtpVerify";
+import { getApiContent } from "api-manage/getApiContent";
 
 export const BackIconButton = styled(IconButton)(({ theme }) => ({
   padding: "10px",
@@ -114,6 +115,8 @@ const BasicInformationForm = ({
   const { f_name, l_name, phone, email, image_full_url } = data;
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setConfirmShowPassword] = useState(false);
+  // "form" or "verify" — gates the Update Profile button's spinner to real submits.
+  const [submitSource, setSubmitSource] = useState(null);
   const customerImageUrl = configData?.base_urls?.customer_image_url;
   const dispatch = useDispatch();
   const profileFormik = useFormik({
@@ -128,15 +131,20 @@ const BasicInformationForm = ({
     validationSchema: ValidationSechemaProfile(),
     onSubmit: async (values, helpers) => {
       try {
+        setSubmitSource("form");
         formSubmitOnSuccess(values);
-      } catch (err) { }
+      } catch (err) {}
     },
   });
   const { mutate: fireBaseOtpMutation, isLoading: fireIsLoading } =
     useFireBaseOtpVerify();
   const setUpRecaptcha = () => {
     if (!window.recaptchaVerifier) {
+      // Firebase v9+ modular signature: (auth, containerOrId, parameters).
+      // Passing the container first makes the SDK read reCAPTCHA settings off
+      // the wrong object → "appVerificationDisabledForTesting" TypeError.
       window.recaptchaVerifier = new RecaptchaVerifier(
+        auth,
         "recaptcha-update",
         {
           size: "invisible",
@@ -146,8 +154,7 @@ const BasicInformationForm = ({
           "expired-callback": () => {
             window.recaptchaVerifier?.reset();
           },
-        },
-        auth
+        }
       );
     } else {
       window.recaptchaVerifier.clear();
@@ -189,10 +196,11 @@ const BasicInformationForm = ({
   const { mutate: profileUpdateByMutate, isLoading } = useUpdateProfile();
   const formSubmitOnSuccess = (values) => {
     const onSuccessHandler = (response) => {
-      if (response) {
+      const content = getApiContent(response) ?? response;
+      if (content) {
         setResData({
           ...resData,
-          ...response,
+          ...content,
           name: values?.name,
           // l_name: l_name,
           phone: values?.phone,
@@ -200,10 +208,10 @@ const BasicInformationForm = ({
           image: values?.image,
           button_type: values?.button_type,
         });
-        if (response?.otp_send) {
-          if (response?.verification_on === "phone") {
+        if (content?.otp_send) {
+          if (content?.verification_on === "phone") {
             if (configData?.firebase_otp_verification === 1) {
-              sendOTP(response, values);
+              sendOTP(content, values);
             } else {
               setOpen(true);
             }
@@ -213,7 +221,7 @@ const BasicInformationForm = ({
         } else {
           setOpenEmail(false);
           setOpen(false);
-          toast.success(response?.message);
+          toast.success(t(content?.message));
           refetch();
           handleClick();
         }
@@ -266,10 +274,16 @@ const BasicInformationForm = ({
     profileFormik.setFieldValue("confirm_password", "");
   };
   const handleVerified = (type) => {
+    setSubmitSource("verify");
+    const payload = {
+      ...profileFormik?.values,
+      password: "",
+      confirm_password: "",
+    };
     if (type === "email") {
-      formSubmitOnSuccess({ ...profileFormik?.values, button_type: "email" });
+      formSubmitOnSuccess({ ...payload, button_type: "email" });
     } else {
-      formSubmitOnSuccess({ ...profileFormik?.values, button_type: "phone" });
+      formSubmitOnSuccess({ ...payload, button_type: "phone" });
     }
   };
   return (
@@ -283,32 +297,34 @@ const BasicInformationForm = ({
           direction="row"
           justifyContent="space-between"
           alignItems="center"
+          sx={{
+            px: { xs: "16px", md: "24px" },
+            pt: { xs: "16px", md: "24px" },
+            pb: "8px",
+          }}
         >
-          <Typography variant="subtitle2" fontWeight="700">
+          <Typography
+            sx={{ fontSize: "18px", fontWeight: 700, color: "neutral.1050" }}
+          >
             {t("Edit Personal Details")}
           </Typography>
           <BackIconButton onClick={() => setEditProfile(false)}>
-            <ArrowBackIosNewIcon
-              sx={{
-                fontSize: "10px",
-                color: (theme) => theme.palette.primary.main,
-                fontWeight: "700",
-                marginRight: "3px",
-              }}
-            />
-            {t("Go Back")}
+            {t("Close")}
           </BackIconButton>
         </Stack>
       </Grid>
-      <form noValidate onSubmit={profileFormik.handleSubmit}>
+      <form
+        noValidate
+        onSubmit={profileFormik.handleSubmit}
+        style={{ width: "100%" }}
+      >
         <Grid
           container
           md={12}
           xs={12}
-          spacing={{ xs: 2, sm: 2, md: 3 }}
-          paddingRight={{ xs: "0px", md: "60px" }}
-          paddingLeft={{ xs: "0px", md: "60px" }}
-          marginLeft="0px"
+          rowSpacing={{ xs: 2, sm: 2, md: 3 }}
+          paddingX={{ xs: "16px", md: "24px" }}
+          paddingBottom={{ xs: "24px", md: "40px" }}
         >
           <Grid item md={12} xs={12} textAlign="-webkit-center">
             <Stack
@@ -321,7 +337,9 @@ const BasicInformationForm = ({
               <ImageUploaderWithPreview
                 type="file"
                 labelText={t("Upload your photo")}
-                hintText="Image format - jpg, png, jpeg, gif Image Size - maximum size 2 MB Image Ratio - 1:1"
+                hintText={t(
+                  "Image format - jpg, png, jpeg, gif Image Size - maximum size 2 MB Image Ratio - 1:1"
+                )}
                 file={profileFormik.values.image}
                 onChange={singleFileUploadHandlerForImage}
                 imageOnChange={imageOnchangeHandlerForImage}
@@ -329,7 +347,7 @@ const BasicInformationForm = ({
                 // imageUrl={customerImageUrl}
                 borderRadius="50%"
                 objectFit
-              //height='140px'
+                //height='140px'
               />
               {image_full_url && (
                 <ImageAddIcon
@@ -362,7 +380,7 @@ const BasicInformationForm = ({
               touched={profileFormik.touched.name && "true"}
             />
           </Grid>
-          <Grid item md={6} xs={12}>
+          <Grid item md={12} xs={12}>
             <Stack position="relative">
               <TextField
                 sx={{ width: "100%" }}
@@ -399,13 +417,14 @@ const BasicInformationForm = ({
                   {" "}
                   {email && (
                     <>
-                      {data?.is_email_verified === "1" &&
-                        email === profileFormik?.values.email ? (
+                      {data?.is_email_verified === 1 &&
+                      email === profileFormik?.values.email ? (
                         <VerifiedIcon />
                       ) : (
                         <>
                           {configData?.centralize_login
                             ?.email_verification_status === 1 && (
+                            <Tooltip title={t("Click to verify email")} arrow>
                               <ReportProblemIcon
                                 onClick={() => handleVerified("email")}
                                 sx={{
@@ -414,7 +433,8 @@ const BasicInformationForm = ({
                                   cursor: "pointer",
                                 }}
                               />
-                            )}
+                            </Tooltip>
+                          )}
                         </>
                       )}
                     </>
@@ -423,7 +443,7 @@ const BasicInformationForm = ({
               </Stack>
             </Stack>
           </Grid>
-          <Grid item md={6} xs={12}>
+          <Grid item md={12} xs={12}>
             <Stack position="relative">
               <TextField
                 name="phone"
@@ -476,6 +496,7 @@ const BasicInformationForm = ({
                   <>
                     {configData?.centralize_login?.phone_verification_status ===
                       1 && (
+                      <Tooltip title={t("Click to verify phone")} arrow>
                         <ReportProblemIcon
                           onClick={() => handleVerified("phone")}
                           sx={{
@@ -484,7 +505,8 @@ const BasicInformationForm = ({
                             cursor: "pointer",
                           }}
                         />
-                      )}
+                      </Tooltip>
+                    )}
                   </>
                 )}
               </Stack>
@@ -492,7 +514,7 @@ const BasicInformationForm = ({
           </Grid>
           {configData?.centralize_login?.manual_login_status === 1 ? (
             <>
-              <Grid item md={6} xs={12}>
+              <Grid item md={12} xs={12}>
                 <TextField
                   required
                   InputLabelProps={{ shrink: true }}
@@ -505,13 +527,19 @@ const BasicInformationForm = ({
                   name="password"
                   label={t("Password")}
                   type={showPassword ? "text" : "password"}
-                  error={Boolean(profileFormik.touched.password && profileFormik.errors.password)}
-                  helperText={profileFormik.touched.password && profileFormik.errors.password}
+                  error={Boolean(
+                    profileFormik.touched.password &&
+                      profileFormik.errors.password
+                  )}
+                  helperText={
+                    profileFormik.touched.password &&
+                    profileFormik.errors.password
+                  }
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
                         <IconButton
-                          aria-label="toggle password visibility"
+                          aria-label={t("toggle password visibility")}
                           onClick={() =>
                             setShowPassword((prevState) => !prevState)
                           }
@@ -527,7 +555,7 @@ const BasicInformationForm = ({
                   }}
                 />
               </Grid>
-              <Grid item md={6} xs={12}>
+              <Grid item md={12} xs={12}>
                 <TextField
                   InputLabelProps={{ shrink: true }}
                   required
@@ -540,14 +568,20 @@ const BasicInformationForm = ({
                   type={showConfirmPassword ? "text" : "password"}
                   value={profileFormik.values.confirm_password}
                   onChange={profileFormik.handleChange}
-                  error={Boolean(profileFormik.touched.confirm_password && profileFormik.errors.confirm_password)}
-                  helperText={profileFormik.touched.confirm_password && profileFormik.errors.confirm_password}
+                  error={Boolean(
+                    profileFormik.touched.confirm_password &&
+                      profileFormik.errors.confirm_password
+                  )}
+                  helperText={
+                    profileFormik.touched.confirm_password &&
+                    profileFormik.errors.confirm_password
+                  }
                   touched={profileFormik.touched.confirm_password && "true"}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
                         <IconButton
-                          aria-label="toggle password visibility"
+                          aria-label={t("toggle password visibility")}
                           onClick={() =>
                             setConfirmShowPassword((prevState) => !prevState)
                           }
@@ -575,7 +609,7 @@ const BasicInformationForm = ({
           <Grid item md={12} xs={12} align="end">
             <FormSubmitButton
               handleReset={handleReset}
-              isLoading={isLoading}
+              isLoading={isLoading && submitSource === "form"}
               reset={t("Reset")}
               submit={t("Update Profile")}
             />

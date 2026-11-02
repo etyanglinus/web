@@ -1,4 +1,4 @@
-import { Typography, useMediaQuery, useTheme } from "@mui/material";
+import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
 import { ModuleTypes } from "helper-functions/moduleTypes";
@@ -77,9 +77,11 @@ const SearchWithTitle = (props) => {
           fontWeight="600"
           lineHeight="33.18px"
           component="h1"
+
           sx={{
             fontSize: {
               md: ModuleTypes.RENTAL === "rental" && "30px !important",
+              color: moduleType === "parcel" ? "black" : "inherit"
             },
             textTransform:
               ModuleTypes.RENTAL === "rental" ? "capitalize" : "initial",
@@ -90,7 +92,7 @@ const SearchWithTitle = (props) => {
         <Typography
           variant={isSmall ? "subtitle2" : "subtitle1"}
           textAlign="center"
-          sx={{ color: (theme) =>theme.palette.mode==="dark"?theme.palette.neutral[1000]: theme.palette.neutral[400] }}
+          sx={{ color: moduleType === "parcel" ? "black" : (theme) => theme.palette.mode === "dark" ? theme.palette.neutral[1000] : theme.palette.neutral[400] }}
           fontWeight="400"
           lineHeight="18.75px"
           component="p"
@@ -102,16 +104,18 @@ const SearchWithTitle = (props) => {
       {moduleType === "parcel" ? (
         <TrackParcelFromHomePage />
       ) : moduleType === "rental" ? null : (
-        <ManageSearch
-          zoneid={zoneid}
-          token={token}
-          maxwidth="false"
-          fullWidth
-          searchQuery={searchQuery}
-          name={name}
-          query={query}
-          currentTab={currentTab}
-        />
+        <Box sx={{ width: "100%", maxWidth: "800px", mx: "auto" }}>
+          <ManageSearch
+            zoneid={zoneid}
+            token={token}
+            maxwidth="false"
+            fullWidth
+            searchQuery={searchQuery}
+            name={name}
+            query={query}
+            currentTab={currentTab}
+          />
+        </Box>
       )}
     </CustomStackFullWidth>
   );

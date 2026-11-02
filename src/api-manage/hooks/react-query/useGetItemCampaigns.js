@@ -3,14 +3,15 @@ import { useQuery } from "react-query";
 import { onSingleErrorResponse } from "../../api-error-response/ErrorResponses";
 import { campaigns_item } from "../../ApiRoutes";
 import { getModule } from "helper-functions/getLanguage";
+import { getApiList } from "../../getApiContent";
 
 const getData = async () => {
   const { data } = await MainApi.get(campaigns_item);
-  return data;
+  return getApiList(data);
 };
 
 export default function useGetItemCampaigns() {
-  return useQuery(["item-campaigns",getModule()], getData, {
+  return useQuery(["item-campaigns", getModule()], getData, {
     enabled: true,
     onError: onSingleErrorResponse,
     cacheTime: 5 * 60 * 1000, // 5 minutes

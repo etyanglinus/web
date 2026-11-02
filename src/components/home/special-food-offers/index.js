@@ -1,209 +1,77 @@
-import { alpha, Button, Skeleton } from "@mui/material";
-import { useState } from "react";
+import { alpha, Skeleton, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
-import Slider from "react-slick";
+import CustomSlider from "components/common/CustomSlider";
 import useGetDiscountedItems from "../../../api-manage/hooks/react-query/product-details/useGetDiscountedItems";
 import { getLanguage } from "helper-functions/getLanguage";
-import { getModuleId } from "helper-functions/getModuleId";
-import {
-  CustomBoxFullWidth,
-  CustomStackFullWidth,
-} from "styled-components/CustomStyles.style";
-import ProductCard from "../../cards/ProductCard";
+import { CustomBoxFullWidth } from "styled-components/CustomStyles.style";
+import NewProductCard from "components/cards/newCard/NewProductCard";
 import { RTL } from "../../rtl";
-import SpecialOfferCardShimmer from "../../Shimmer/SpecialOfferCardSimmer";
-import H2 from "../../typographies/H2";
-import { createEnhancedArrows } from "../../common/EnhancedSliderArrows";
+import ProductCardSimmer from "components/Shimmer/ProductCardSimmer";
 import { HomeComponentsWrapper } from "../HomePageComponents";
-import { useRouter } from "next/router";
 
 const SpecialFoodOffers = ({ title }) => {
   const { t } = useTranslation();
-  const params = {
-    offset: 1,
-    limit: 15,
-  };
-
-  const { data, refetch, isLoading, isFetching } =
-    useGetDiscountedItems(params);
-  const [isHover, setIsHover] = useState(false);
+  const params = { offset: 1, limit: 15 };
+  const { data, isLoading, isFetching } = useGetDiscountedItems(params);
   const lanDirection = getLanguage() ? getLanguage() : "ltr";
-  const router = useRouter()
+  const products = data?.products ?? [];
 
-  // useEffect(() => {
-  //   refetch();
-  // }, []);
-
-  const settings = {
-    dots: false,
-    infinite: data?.products?.length > 5,
-    slidesToShow: isLoading ? 1 : 5,
-    cssEase: "ease-in-out",
-    autoplay: true,
-    speed: 800,
-    autoplaySpeed: 4000,
-    variableHeight: true,
-    ...createEnhancedArrows(isHover, {
-      displayNoneOnMobile: true,
-      variant: "primary",
-      noBackground: true
-    }),
-    responsive: [
-      {
-        breakpoint: 1200,
-        settings: {
-          slidesToShow: 4,
-          slidesToScroll: 1,
-          infinite: data?.products?.length > 4,
-        },
-      },
-      {
-        breakpoint: 992,
-        settings: {
-          slidesToShow: 3.5,
-          infinite: data?.products?.length > 3,
-        },
-      },
-      {
-        breakpoint: 821,
-        settings: {
-          slidesToShow: 3.2,
-          infinite: data?.products?.length > 3,
-        },
-      },
-      {
-        breakpoint: 768,
-        settings: {
-          slidesToShow: 3,
-          infinite: data?.products?.length > 3,
-        },
-      },
-      {
-        breakpoint: 576,
-        settings: {
-          slidesToShow: 2,
-          infinite: data?.products?.length > 2,
-        },
-      },
-      {
-        breakpoint: 480,
-        settings: {
-          slidesToShow: 1.8,
-          infinite: data?.products?.length > 1,
-        },
-      },
-      {
-        breakpoint: 360,
-        settings: {
-          slidesToShow: 1.5,
-          infinite: data?.products?.length > 1,
-        },
-      },
-    ],
-  };
-  const navigateToHome = () => {
-    router.push({
-      pathname: '/home',
-      query: {
-        search: "special-offer",
-        module_id: getModuleId(),
-        data_type: "discounted",
-      },
-    }).then(() => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-  };
+  if (!isFetching && !products.length) return null;
 
   return (
-    <>
-      {data?.products?.length > 0 && (
-        <HomeComponentsWrapper
-          onMouseEnter={() => setIsHover(true)}
-          onMouseLeave={() => setIsHover(false)}
-          sx={{
-            cursor: "pointer",
-            ".slick-slide": {
-              padding: "0 5px",
-            },
-          }}
-        >
-          <CustomStackFullWidth
-            alignItems="center"
-            justyfyContent="center"
-            mb="10px"
-            spacing={1}
-            onMouseEnter={() => setIsHover(true)}
-            onMouseLeave={() => setIsHover(false)}
-          >
-            <CustomStackFullWidth
-              alignItems="center"
-              justifyContent="space-between"
-              direction="row"
-            >
-              {isFetching ? (
+    <RTL direction={lanDirection}>
+      <CustomBoxFullWidth
+        sx={{
+          padding: { xs: "16px 0px 16px 16px", md: "20px 0px 20px 24px" },
+          backgroundColor: (theme) => alpha(theme.palette.neutral[400], 0.1),
+          borderRadius: { xs: "12px", md: "16px" },
+          display: "flex",
+          flexDirection: "column",
+          gap: "20px",
+        }}
+      >
+        <CustomBoxFullWidth>
+          <CustomSlider
+            items={isFetching ? Array.from({ length: 5 }) : products}
+            renderItem={(item) =>
+              isFetching ? (
+                <ProductCardSimmer variant="vertical" />
+              ) : (
+                <NewProductCard
+                  item={item}
+                  variant="vertical"
+                  cardWidth={{ xs: "150px", md: "170px" }}
+                />
+              )
+            }
+            arrowVariant="section"
+            title={
+              isFetching ? (
                 <Skeleton variant="text" width="110px" />
               ) : (
-                <H2 text={title ? title : t("Special Offer")} component="h2" />
-              )}
-              {isFetching ? (
-                <Skeleton width="100px" variant="80px" />
-              ) : (
-
-                <Button
-                  onClick={navigateToHome}
-                  variant="text"
+                <Typography
                   sx={{
-                    transition: "all ease 0.5s",
-                    textTransform: "capitalize",
-                    "&:hover": {
-                      letterSpacing: "0.03em",
-                    },
+                    fontSize: { xs: "20px", sm: "24px" },
+                    fontWeight: 700,
+                    color: "neutral.1050",
+                    lineHeight: 1.1,
+                    letterSpacing: "-1.2px",
                   }}
                 >
-                  {t("View all")}
-                </Button>
-                // </Link>
-              )}
-            </CustomStackFullWidth>
-            <RTL direction={lanDirection}>
-              <CustomBoxFullWidth
-                sx={{
-                  paddingTop: { xs: "0px", sm: "0px" },
-                  padding: { xs: "10px", md: "20px" },
-                  backgroundColor: (theme) =>
-                    alpha(theme.palette.neutral[400], 0.1),
-                  ".slick-slider .slick-track": {
-                    marginY: "10px",
-                  },
-                }}
-              >
-                <>
-                  {isFetching ? (
-                    <Slider {...settings}>
-                      {[...Array(5)].map((item, index) => {
-                        return <SpecialOfferCardShimmer key={index} />;
-                      })}
-                    </Slider>
-                  ) : (
-                    <Slider {...settings}>
-                      {data?.products?.map((item, index) => {
-                        return (
-                          <ProductCard
-                            key={index}
-                            item={item}
-                            specialCard="true"
-                          />
-                        );
-                      })}
-                    </Slider>
-                  )}
-                </>
-              </CustomBoxFullWidth>
-            </RTL>
-          </CustomStackFullWidth>
-        </HomeComponentsWrapper>
-      )}
-    </>
+                  {t(title ?? "Special Offer")}
+                </Typography>
+              )
+            }
+            headerSx={{ pr: { xs: "16px", md: "24px" } }}
+            stretchItems={false}
+            allowOverflowY={false}
+            slidesPerView="auto"
+            spaceBetween={16}
+            breakpoints={{ 901: { spaceBetween: 20 } }}
+          />
+        </CustomBoxFullWidth>
+      </CustomBoxFullWidth>
+    </RTL>
   );
 };
 

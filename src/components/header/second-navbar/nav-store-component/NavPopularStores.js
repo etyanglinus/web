@@ -1,4 +1,6 @@
 import React, { useEffect } from "react";
+import { handleStoreRedirect } from "../../../../helper-functions/handleStoreRedirect";
+
 import {
   CustomStackFullWidth,
   CustomTypographyGray,
@@ -15,6 +17,7 @@ import { getModuleId } from "helper-functions/getModuleId";
 import { getStoresOrRestaurants } from "helper-functions/getStoresOrRestaurants";
 import { setPopularStores } from "redux/slices/storedData";
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
+import VerifiedStoreBadge from "components/cards/VerifiedStoreBadge";
 
 const NavPopularStore = () => {
   const { t } = useTranslation();
@@ -45,24 +48,12 @@ const NavPopularStore = () => {
   }, [data]);
 
   const handleClick = (item) => {
-    if (getCurrentModuleType() === "rental") {
-      router.push({
-        pathname: `/rental/provider-details/${item?.id}`,
-      });
-    } else {
-      router.push({
-        pathname: "/store/[id]",
-        query: {
-          id: `${item?.slug ? item?.slug : item?.id}`,
-          module_id: `${getModuleId()}`,
-          module_type: getCurrentModuleType(),
-          store_zone_id: `${item?.zone_id}`,
-          distance: item?.distance,
-        },
-      });
-    }
+     console.log({item});
+    handleStoreRedirect(item, router);
   };
   const popular = t("Popular");
+ 
+  
 
   return (
     <CustomStackFullWidth spacing={4}>
@@ -77,6 +68,8 @@ const NavPopularStore = () => {
                 return (
                   <Stack
                     key={store.id}
+                    direction="row"
+                    alignItems="center"
                     width="100%"
                     onClick={() => handleClick(store)}
                   >
@@ -99,6 +92,7 @@ const NavPopularStore = () => {
                     >
                       {store.name}
                     </CustomTypographyGray>
+                    <VerifiedStoreBadge verified={store?.verified_seller} fontSize="14px" />
                   </Stack>
                 );
               })}
@@ -109,7 +103,7 @@ const NavPopularStore = () => {
           </Stack>
         )}
         <Stack width="70%" justifyContent="flex-start" alignItems="center">
-          <ViewMore redirect={getCurrentModuleType() === "rental" ? "/rental/provider/popular":  "/store/popular"} />
+          <ViewMore redirect={getCurrentModuleType() === "rental" ? "/rental/provider/popular" : "/store/popular"} />
         </Stack>
       </Stack>
     </CustomStackFullWidth>

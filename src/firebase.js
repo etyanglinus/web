@@ -8,7 +8,7 @@ import {
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBhPVJQjVKv5BqlJIyg1p8FtyLlqBzY1sg",
+apiKey: "AIzaSyBhPVJQjVKv5BqlJIyg1p8FtyLlqBzY1sg",
   authDomain: "fasta-rides-457315.firebaseapp.com",
   projectId: "fasta-rides-457315",
   storageBucket: "fasta-rides-457315.firebasestorage.app",

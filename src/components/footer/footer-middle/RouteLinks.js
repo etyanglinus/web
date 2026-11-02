@@ -13,7 +13,7 @@ const RouteLinks = (props) => {
   const dispatch = useDispatch();
   const { selectedModule } = useSelector((state) => state.utilsData);
 
-  const { token, configData } = props;
+  const { token, configData, centered } = props;
   const { t } = useTranslation();
   const router = useRouter();
   const handleClick = (href, value) => {
@@ -40,9 +40,7 @@ const RouteLinks = (props) => {
         undefined,
         { shallow: true }
       );
-    } else if (value === "delivery_man") {
-      router.push(href, undefined, { shallow: true });
-    } else if (value === "help-and-support") {
+    } else {
       router.push(href, undefined, { shallow: true });
     }
   };
@@ -52,50 +50,39 @@ const RouteLinks = (props) => {
   const theme = useTheme();
   const isXsmall = useMediaQuery(theme.breakpoints.down("sm"));
 
-  return (
-    <CustomStackFullWidth spacing={2} alignItems={{ xs: "start" }}>
-      {RouteLinksData.map((item, index) => {
-        if((!configData?.toggle_dm_registration && item.value==="delivery_man") || (!configData?.toggle_dm_registration && item?.value==="restaurant_owner") )
-          return null
+  const linkSx = {
+    fontSize: "14px",
+    fontWeight: 400,
+    color: "neutral.1050",
+    letterSpacing: "-0.42px",
+    lineHeight: 1.2,
+    whiteSpace: "nowrap",
+    py: "6px",
+    cursor: "pointer",
+    textAlign: centered ? "center" : "left",
+    "&:hover": { color: theme.palette.primary.main },
+  };
 
+  return (
+    <CustomStackFullWidth gap="0px" alignItems={centered ? "center" : "flex-start"}>
+      {RouteLinksData.map((item, index) => {
+        if (
+          (!configData?.toggle_store_registration && item?.value === "restaurant_owner") ||
+          (!configData?.toggle_dm_registration && item?.value === "delivery_man")
+        ) {
+          return null;
+        }
         return (
-          <Typography
-            key={index}
-            onClick={() => handleClick(item.link, item.value)}
-            sx={{
-              textAlign:"left",
-              cursor: "pointer",
-              "&:hover": {
-                color: theme.palette.primary.main,
-              },
-            }}
-          >
+          <Typography key={index} onClick={() => handleClick(item.link, item.value)} sx={linkSx}>
             {t(item.name)}
           </Typography>
         );
       })}
-
-      <Typography
-        onClick={() => handleClickToRoute("/about-us")}
-        sx={{
-          cursor: "pointer",
-          "&:hover": {
-            color: theme.palette.primary.main,
-          },
-        }}
-      >
+      <Typography onClick={() => handleClickToRoute("/about-us")} sx={linkSx}>
         {t("About Us")}
       </Typography>
-      <Typography
-        onClick={() => handleClickToRoute("/track-order")}
-        sx={{
-          cursor: "pointer",
-          "&:hover": {
-            color: theme.palette.primary.main,
-          },
-        }}
-      >
-        {selectedModule?.module_type==="rental" ? t("Track Trip"):t("Track Order")}
+      <Typography onClick={() => handleClickToRoute("/track-order")} sx={linkSx}>
+        {selectedModule?.module_type === "rental" ? t("Track Trip") : t("Track Order")}
       </Typography>
     </CustomStackFullWidth>
   );

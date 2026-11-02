@@ -2,20 +2,30 @@ import React, { useEffect } from "react";
 import CssBaseline from "@mui/material/CssBaseline";
 import MainLayout from "../../../src/components/layout/MainLayout";
 import { useDispatch } from "react-redux";
-import Router from "next/router";
+import dynamic from "next/dynamic";
 import { setConfigData } from "redux/slices/configData";
-import StoreDetails from "../../../src/components/store-details";
+import { getApiContent } from "api-manage/getApiContent";
 import { config_api, store_details_api } from "api-manage/ApiRoutes";
 import SEO from "../../../src/components/seo";
-import { NoSsr } from "@mui/material";
 import useScrollToTop from "api-manage/hooks/custom-hooks/useScrollToTop";
+import { checkMaintenanceMode } from "../../../src/utils/serverSidePropsHelper";
+import fetchWithTimeoutRetry from "../../../src/utils/fetchWithTimeoutRetry";
+import StoreDetailsSkeleton from "../../../src/components/common/skeletons/StoreDetailsSkeleton";
+
+const StoreDetails = dynamic(
+  () => import("../../../src/components/store-details"),
+  { ssr: false, loading: () => <StoreDetailsSkeleton /> }
+);
 
 const StorePage = ({ configData, storeDetails, distance }) => {
   const dispatch = useDispatch();
   useScrollToTop();
 
-  const metaTitle = `${storeDetails?.meta_title || storeDetails?.name} - ${configData?.business_name}`;
-  const metaImage = storeDetails?.meta_image_full_url || storeDetails?.cover_photo_full_url;
+  const metaTitle = `${storeDetails?.meta_title || storeDetails?.name} - ${
+    configData?.business_name
+  }`;
+  const metaImage =
+    storeDetails?.meta_image_full_url || configData?.logo_full_url;
 
   const manageVisitedStores = () => {
     const key = "visitedStores";
@@ -23,7 +33,9 @@ const StorePage = ({ configData, storeDetails, distance }) => {
       const stored = localStorage.getItem(key);
       const visitedStores = stored ? JSON.parse(stored) : [];
 
-      const alreadyVisited = visitedStores.some(store => store?.id === storeDetails?.id);
+      const alreadyVisited = visitedStores.some(
+        (store) => store?.id === storeDetails?.id
+      );
       if (!alreadyVisited) {
         visitedStores.push({ ...storeDetails, distance });
         localStorage.setItem(key, JSON.stringify(visitedStores));
@@ -37,15 +49,13 @@ const StorePage = ({ configData, storeDetails, distance }) => {
     if (storeDetails) {
       manageVisitedStores();
     }
+  }, [storeDetails?.id]);
 
-    if (!configData || Object.keys(configData).length === 0) {
-      Router.replace("/404");
-    } else if (configData?.maintenance_mode) {
-      Router.replace("/maintainance");
-    } else {
+  useEffect(() => {
+    if (configData && Object.keys(configData).length > 0) {
       dispatch(setConfigData(configData));
     }
-  }, [configData, storeDetails]);
+  }, [configData]);
 
   return (
     <>
@@ -58,9 +68,7 @@ const StorePage = ({ configData, storeDetails, distance }) => {
         configData={configData}
       />
       <MainLayout configData={configData}>
-        <NoSsr>
-          <StoreDetails storeDetails={storeDetails} configData={configData} />
-        </NoSsr>
+        <StoreDetails storeDetails={storeDetails} configData={configData} />
       </MainLayout>
     </>
   );
@@ -71,65 +79,100 @@ export default StorePage;
 export const getServerSideProps = async (context) => {
   const {
     id: storeId,
-    module_id: moduleId,
+    module,
+    module_id: legacyModuleId,
     lat,
     lng,
     distance,
   } = context.query;
-  const { req } = context;
+  const { req, res } = context;
   const language = req.cookies.languageSetting || "en";
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
+  const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || "").replace(/\/+$/, "");
+  const origin = process.env.NEXT_CLIENT_HOST_URL;
 
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-    const origin = process.env.NEXT_CLIENT_HOST_URL;
+  const headersCommon = {
+    "X-server": "server",
+    origin,
+    "X-localization": language,
+  };
 
-    const headersCommon = {
-      "X-software-id": 33571750,
-      "X-server": "server",
-      origin,
-      "X-localization": language,
-    };
+  const moduleId = module || legacyModuleId;
 
-    console.time("Fetch Config");
-    const configRes = await fetch(`${baseUrl}${config_api}`, {
+  console.time("Fetch Config + Store Details");
+  const [configSettled, storeDetailsSettled] = await Promise.allSettled([
+    fetchWithTimeoutRetry(`${baseUrl}${config_api}`, {
       method: "GET",
       headers: { ...headersCommon, lat, lng },
-      signal: controller.signal,
-    });
-    console.timeEnd("Fetch Config");
-
-    console.time("Fetch Store Details");
-    const storeDetailsRes = await fetch(`${baseUrl}${store_details_api}/${storeId}`, {
+    }),
+    fetchWithTimeoutRetry(`${baseUrl}${store_details_api}/${storeId}`, {
       method: "GET",
       headers: { ...headersCommon, moduleId },
-      signal: controller.signal,
-    });
-    console.timeEnd("Fetch Store Details");
+    }),
+  ]);
+  console.timeEnd("Fetch Config + Store Details");
 
-    clearTimeout(timeout);
+  // configData powers the header/layout/business info — it must always load, no graceful degrade.
+  if (configSettled.status === "rejected") {
+    console.error("config network error:", configSettled.reason?.message);
+    return { notFound: true };
+  }
+  const configRes = configSettled.value;
+  if (!configRes.ok) {
+    return { notFound: true };
+  }
 
-    if (!configRes.ok || !storeDetailsRes.ok) {
-      throw new Error("One or more API calls failed.");
+  let configData;
+  try {
+    configData = getApiContent(await configRes.json());
+  } catch (error) {
+    console.error("config parse error:", error.message);
+    return { notFound: true };
+  }
+
+  // storeDetails can gracefully degrade to null on a pure network/timeout failure.
+  let storeDetails = null;
+  if (storeDetailsSettled.status === "rejected") {
+    console.error(
+      "store_details network error:",
+      storeDetailsSettled.reason?.message,
+    );
+  } else {
+    const storeDetailsRes = storeDetailsSettled.value;
+    if (!storeDetailsRes.ok) {
+      return { notFound: true };
     }
+    try {
+      storeDetails = getApiContent(await storeDetailsRes.json());
+    } catch (error) {
+      console.error("store_details parse error:", error.message);
+      return { notFound: true };
+    }
+    if (!storeDetails?.id) {
+      console.error("store_details failed:", { storeDetails });
+      return { notFound: true };
+    }
+  }
 
-    const configData = await configRes.json();
-    const storeDetails = await storeDetailsRes.json();
-
+  if (checkMaintenanceMode(configData)) {
     return {
-      props: {
-        configData,
-        storeDetails,
-        distance: distance || null,
+      redirect: {
+        destination: "/maintainance",
+        permanent: false,
       },
     };
-  } catch (error) {
-    clearTimeout(timeout);
-    console.error("SSR fetch failed:", error.message);
-    return {
-      notFound: true,
-    };
   }
+
+  res.setHeader(
+    "Cache-Control",
+    "public, s-maxage=60, stale-while-revalidate=300"
+  );
+
+  return {
+    props: {
+      configData,
+      storeDetails,
+      distance: distance || null,
+    },
+  };
 };

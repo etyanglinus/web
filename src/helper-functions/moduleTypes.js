@@ -5,4 +5,6 @@ export const ModuleTypes = {
   FOOD: "food",
   PARCEL: "parcel",
   RENTAL: "rental",
+  RIDE: "ride-share",
+  SERVICE: "service",
 };

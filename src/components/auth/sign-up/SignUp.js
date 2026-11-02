@@ -18,6 +18,10 @@ import toast from "react-hot-toast";
 import { useDispatch, useSelector } from "react-redux";
 import { setUser } from "redux/slices/profileInfo";
 import { setWelcomeModal } from "redux/slices/utils";
+import {
+  getModuleIdentifier,
+  saveModuleParam,
+} from "../../../utils/moduleParamManager";
 import { signup_successfull } from "utils/toasterMessages";
 import { ModuleSelection } from "../../landing-page/hero-section/module-selection";
 import CustomModal from "../../modal";
@@ -25,7 +29,10 @@ import AcceptTermsAndConditions from "../AcceptTermsAndConditions";
 import OtpForm from "./OtpForm";
 import SignUpValidation from "./SignUpValidation";
 import { getLoginUserCheck } from "components/auth/sign-in/loginHepler";
-import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
+import {
+  getCurrentModuleId,
+  getCurrentModuleType,
+} from "helper-functions/getCurrentModuleType";
 
 const SignUp = ({
   configData,
@@ -60,7 +67,7 @@ const SignUp = ({
     onSubmit: async (values, helpers) => {
       try {
         formSubmitHandler(values);
-      } catch (err) { }
+      } catch (err) {}
     },
   });
   const handleCloseOtp = () => {
@@ -115,14 +122,29 @@ const SignUp = ({
       toast.success(t(signup_successfull));
       dispatch(setWelcomeModal(true));
       const zoneSelected = JSON.parse(localStorage.getItem("zoneid"));
+      const moduleId = getCurrentModuleId();
+      const pushWithModule = (pathname) => {
+        if (moduleId) {
+          router.push(
+            { pathname, query: { module: `${moduleId}` } },
+            undefined,
+            { shallow: true },
+          );
+          return;
+        }
+        router.push(pathname, undefined, { shallow: true });
+      };
       if (zoneSelected && getCurrentModuleType()) {
-        if (getCurrentModuleType() !== "parcel" && getCurrentModuleType() !== "rental") {
-          router.push("/interest", undefined, { shallow: true });
+        if (
+          getCurrentModuleType() !== "parcel" &&
+          getCurrentModuleType() !== "rental"
+        ) {
+          pushWithModule("/interest");
         } else {
-          router.push("/home", undefined, { shallow: true });
+          pushWithModule("/home");
         }
       } else {
-        router.push("/home", undefined, { shallow: true });
+        pushWithModule("/home");
       }
       handleClose();
     }
@@ -136,8 +158,17 @@ const SignUp = ({
         dispatch(setWelcomeModal(true));
       }
 
+      // Get module identifier (slug if available, otherwise id)
+      const moduleIdentifier = getModuleIdentifier(item);
+
+      // Save module to localStorage and cookie
+      saveModuleParam(item?.id, item?.slug);
+
+      const nextQuery = { module: moduleIdentifier };
       if (item.module_type !== "parcel" && item?.module_type !== "rental") {
-        router.push("/interest", undefined, { shallow: true });
+        router.push({ pathname: "/interest", query: nextQuery }, undefined, {
+          shallow: true,
+        });
       } else {
         //router.push("/home", undefined, { shallow: true });
       }
@@ -145,7 +176,6 @@ const SignUp = ({
 
     setOpenModuleSelection(false);
   };
-
 
   const { mutate, isLoading, error } = useSignUp();
   const formSubmitHandler = (values) => {
@@ -168,7 +198,7 @@ const SignUp = ({
           setOtpData,
           setMainToken,
           sendOTP,
-          configData
+          configData,
         );
       },
       onError: onErrorResponse,
@@ -284,6 +314,7 @@ const SignUp = ({
                     </LoadingButton>
                     <Typography
                       sx={{
+                        textAlign: "center",
                         a: {
                           "&:hover": {
                             letterSpacing: "0.03em",

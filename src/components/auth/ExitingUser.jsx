@@ -26,11 +26,12 @@ const ExitingUser = ({
     setIsYes(value);
     formSubmitHandler(value);
   };
-
+  console.log({loginInfo});
+  
   return (
     <CustomStackFullWidth
       spacing={3}
-      sx={{ maxWidth: "400px", padding: "2rem" }}
+      sx={{ maxWidth: "100%", padding: "2rem" }}
     >
       <CustomStackFullWidth alignItems="center">
         <Avatar
@@ -48,7 +49,9 @@ const ExitingUser = ({
           color={theme.palette.text.secondary}
         >
           {t(
-            "It looks like the email you entered has already been used and has an existing account."
+            loginInfo?.login_type === "otp"
+              ? "It looks like the phone number you entered has already been used and has an existing account."
+              : "It looks like the email you entered has already been used and has an existing account."
           )}
         </Typography>
       </CustomStackFullWidth>

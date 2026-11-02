@@ -39,3 +39,15 @@ next-env.d.ts
 /.idea
 /.idea/
 /.vscode
+
+.ai-rules.md
+.ai/
+CLAUDE.md
+.CLAUDE.md
+.claude/
+CLAUDE.md
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

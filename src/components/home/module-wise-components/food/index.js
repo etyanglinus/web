@@ -1,40 +1,57 @@
-import { Grid } from "@mui/material";
+import { t } from "i18next";
+import { Stack } from "@mui/material";
 import useGetNewArrivalStores from "api-manage/hooks/react-query/store/useGetNewArrivalStores";
-import { useGetVisitAgain } from "api-manage/hooks/react-query/useGetVisitAgain";
+import MobileAppBanner from "components/home/MobileAppBanner";
 import PaidAds from "components/home/paid-ads";
+import FoodSearchBanner from "./FoodSearchBanner";
+import TopOfferNHappyHourSection from "../shared/TopOfferNHappyHourSection";
+import BogoBanner from "components/bogo/BogoBanner";
+import useGetBogoHome from "api-manage/hooks/react-query/bogo/useGetBogoHome";
+import BundleItemsSection from "../shared/BundleItemsSection";
+import RecommendedStore from "components/home/recommended-store";
+import ModuleHomeSidebarLayout from "components/home/sidebar-layout/ModuleHomeSidebarLayout";
+import TopOffersNearMe from "components/home/top-offers-nearme";
+import QuickDeliverySection from "./QuickDeliverySection";
+import LastOrdersSection from "./LastOrdersSection";
+import TrendingDishes from "./TrendingDishes";
 import { getModuleId } from "helper-functions/getModuleId";
-import React, { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
-import useGetOtherBanners from "../../../../api-manage/hooks/react-query/useGetOtherBanners";
 import { getToken } from "helper-functions/getToken";
+import React, { useEffect, useMemo, useState } from "react";
+import { useSelector } from "react-redux";
 import { IsSmallScreen } from "utils/CommonValues";
+import useGetOtherBanners from "../../../../api-manage/hooks/react-query/useGetOtherBanners";
 import CustomContainer from "../../../container";
 import OrderDetailsModal from "../../../order-details-modal/OrderDetailsModal";
 import Banners from "../../banners";
-import BestReviewedItems from "../../best-reviewed-items";
+import BasicCampaign from "../../basic-campaign/BasicCampaign";
 import FeaturedCategories from "../../featured-categories";
 import LoveItem from "../../love-item";
 import NewArrivalStores from "../../new-arrival-stores";
 import RunningCampaigns from "../../running-campaigns";
-import SpecialFoodOffers from "../../special-food-offers";
-import Stores from "../../stores";
+import PromotionalBanner from "../../PromotionalBanner";
+import SinglePoster from "../ecommerce/SinglePoster";
+import TrendingBites from "../../trending-bites";
 import VisitAgain from "../../visit-again";
 import FeaturedCategoriesWithFilter from "../ecommerce/FeaturedCategoriesWithFilter";
-import TopOffersNearMe from "components/home/top-offers-nearme";
-import RecommendedStore from "components/home/recommended-store";
+import Stores from "../../stores";
+import { getFoodSections } from "./foodSectionsConfig";
+import NewArrivals from "../ecommerce/NewArrivals";
+import TopPicksSection from "../grocery/TopPicksSection";
+
+// Wrapper that renders its children as-is. When a section returns null (no
+// data / feature off), this element doesn't exist in the DOM at all, so the
+// parent Stack skips it — no leftover gap. Avoids CSS :has() entirely.
+// NOTE: must stay at module scope — defining it inside the component recreates
+// the type every render, remounting every wrapped section on each render.
+const S = ({ children }) => children ?? null;
 
 const FoodModule = (props) => {
-  const { configData } = props;
+  const { configData, routeSection } = props;
   const token = getToken();
   const [isVisited, setIsVisited] = useState(false);
   const [storeData, setStoreData] = React.useState([]);
   const { orderDetailsModalOpen } = useSelector((state) => state.utilsData);
   const { data, refetch, isLoading } = useGetOtherBanners();
-  const {
-    data: visitedStores,
-    refetch: refetchVisitAgain,
-    isFetching: visitIsFetching,
-  } = useGetVisitAgain();
   const {
     data: newStore,
     refetch: newStoreRefetch,
@@ -42,121 +59,236 @@ const FoodModule = (props) => {
   } = useGetNewArrivalStores({
     type: "all",
   });
+  const moduleId = useMemo(() => getModuleId(), []);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         await refetch();
-        if (token) {
-          await refetchVisitAgain();
-        }
         newStoreRefetch();
       } catch (error) {
         console.error("Error fetching data:", error);
       }
     };
-
     fetchData();
   }, [token]);
-  useEffect(() => {
-    if (visitedStores?.length > 0 || newStore?.stores?.length > 0) {
-      if (visitedStores?.length > 0 && visitedStores) {
-        setStoreData(visitedStores);
-        setIsVisited(true);
-      } else {
-        if (newStore?.stores) {
-          setStoreData(newStore?.stores);
-        }
-      }
-    }
-  }, [visitedStores, newStore?.stores, getModuleId()]);
 
-  return (
-    <Grid container gap={1}>
-      <Grid item xs={12} sx={{ marginTop: { xs: "-10px", sm: "10px" } }}>
-        <CustomContainer>
+  useEffect(() => {
+    if (newStore?.stores?.length > 0) {
+      setStoreData(newStore.stores);
+    }
+  }, [newStore?.stores, moduleId]);
+
+  const overviewContent = (
+    <Stack gap={{ xs: "16px", lg: "32px" }}>
+      <S>
+        <FoodSearchBanner
+          zoneid={
+            typeof window !== "undefined"
+              ? localStorage.getItem("zoneid")
+              : undefined
+          }
+        />
+      </S>
+
+      <S>
+        <CustomContainer noMobilePadding>
           <FeaturedCategories configData={configData} />
         </CustomContainer>
-      </Grid>
-      <Grid item xs={12}>
-        <CustomContainer>
-          <RecommendedStore/>
-        </CustomContainer>
-      </Grid>
-      <Grid item xs={12}>
-        {IsSmallScreen() ? (
-          <VisitAgain
-            configData={configData}
-            visitedStores={storeData}
-            isVisited={isVisited}
-            isFetching={isFetching || visitIsFetching}
-          />
-        ) : (
-          <CustomContainer>
-            <VisitAgain
-              configData={configData}
-              isVisited={isVisited}
-              visitedStores={storeData}
-              isFetching={isFetching || visitIsFetching}
-            />
-          </CustomContainer>
-        )}
-      </Grid>
-      <Grid item xs={12}>
-        <CustomContainer>
-          <PaidAds />
-        </CustomContainer>
-      </Grid>
-      <Grid item xs={12}>
-        <CustomContainer>
-          <SpecialFoodOffers title="Special Food Offers" />
-        </CustomContainer>
-      </Grid>
-      <Grid item xs={12}>
-        <CustomContainer>
-          <TopOffersNearMe title="Top offers near me" />
-        </CustomContainer>
-      </Grid>
+      </S>
 
-      <Grid item xs={12}>
+      <S>
         <CustomContainer>
           <Banners />
         </CustomContainer>
-      </Grid>
-      <Grid item xs={12}>
+      </S>
+
+      <S>
         <CustomContainer>
-          <BestReviewedItems title="Best Reviewed Items" info={data} />
+          {/* 🔥 new feature TimeBasedServiceBanner */}
+          <TopOfferNHappyHourSection />
         </CustomContainer>
-      </Grid>
-      <Grid item xs={12}>
+      </S>
+
+      <S>
         <CustomContainer>
+          <PaidAds />
+        </CustomContainer>
+      </S>
+      <S>
+        <CustomContainer
+          sx={{
+            paddingLeft: "16px !important",
+            paddingRight: "0 !important",
+          }}
+        >
+          <TrendingBites
+            title={t("Trending Bites")}
+            subtitle={t("What everyone's watching and ordering")}
+          />
+        </CustomContainer>
+      </S>
+      <S>
+        <CustomContainer>
+          <BogoBanner />
+        </CustomContainer>
+      </S>
+      <S>
+        {/* 🔥 new feature QuickDeliverySection */}
+        <CustomContainer
+          sx={{
+            paddingLeft: "16px !important",
+            paddingRight: "0 !important",
+          }}
+        >
+          <QuickDeliverySection />
+        </CustomContainer>
+      </S>
+
+      {token ? (
+        <S>
+          <CustomContainer noMobilePadding>
+            <LastOrdersSection />
+          </CustomContainer>
+        </S>
+      ) : null}
+
+      <S>
+        <CustomContainer
+          sx={{
+            paddingLeft: "16px !important",
+            paddingRight: "0 !important",
+          }}
+        >
+          <TopOffersNearMe title={t("Top Picks Near You")} />
+        </CustomContainer>
+      </S>
+      <S>
+        <CustomContainer
+          sx={{
+            paddingLeft: "16px !important",
+            paddingRight: "0 !important",
+          }}
+        >
+          <TopPicksSection />
+        </CustomContainer>
+      </S>
+
+      <S>
+        <CustomContainer>
+          <BundleItemsSection />
+        </CustomContainer>
+      </S>
+
+      <S>
+        <CustomContainer noMobilePadding>
+          <MobileAppBanner />
+        </CustomContainer>
+      </S>
+
+      <S>
+        <CustomContainer
+          sx={{
+            paddingLeft: "16px !important",
+            paddingRight: "0 !important",
+          }}
+        >
+          <RecommendedStore />
+        </CustomContainer>
+      </S>
+
+      <S>
+        <CustomContainer
+          sx={{
+            paddingLeft: "16px !important",
+            paddingRight: "0 !important",
+          }}
+        >
+          <TrendingDishes />
+        </CustomContainer>
+      </S>
+
+      <S>
+        <CustomContainer
+          sx={{
+            paddingLeft: "16px !important",
+            paddingRight: "0 !important",
+          }}
+        >
+          <VisitAgain
+            configData={configData}
+            isVisited={isVisited}
+            visitedStores={storeData}
+            isFetching={isFetching}
+          />
+        </CustomContainer>
+      </S>
+
+      <S>
+        <CustomContainer>
+          <BasicCampaign />
+        </CustomContainer>
+      </S>
+
+      <S>
+        <CustomContainer noMobilePadding>
           <LoveItem />
         </CustomContainer>
-      </Grid>
-      <Grid item xs={12}>
-        <CustomContainer>
-          <NewArrivalStores />
-        </CustomContainer>
-      </Grid>
+      </S>
 
-      <Grid item xs={12}>
-        <CustomContainer>
+      <S>
+        <CustomContainer
+          sx={{
+            paddingLeft: "16px !important",
+            paddingRight: "0 !important",
+          }}
+        >
           <RunningCampaigns />
         </CustomContainer>
-      </Grid>
-      <Grid item xs={12}>
+      </S>
+
+      {/* <S>
         <CustomContainer>
-          <FeaturedCategoriesWithFilter title="Featured Categories" />
+          <PromotionalBanner bannerData={data} />
         </CustomContainer>
-      </Grid>
-      <Grid item xs={12}>
+      </S> */}
+
+      <S>
+        <CustomContainer
+          sx={{
+            paddingLeft: "16px !important",
+            paddingRight: "0 !important",
+          }}
+        >
+          <NewArrivalStores />
+        </CustomContainer>
+      </S>
+      <S>
+        <CustomContainer noMobilePadding>
+          <SinglePoster bannerData={data} />
+        </CustomContainer>
+      </S>
+
+      <S>
         <CustomContainer>
           <Stores />
         </CustomContainer>
-      </Grid>
+      </S>
+
       {orderDetailsModalOpen && !token && (
         <OrderDetailsModal orderDetailsModalOpen={orderDetailsModalOpen} />
       )}
-    </Grid>
+    </Stack>
+  );
+
+  const { data: bogoHome } = useGetBogoHome();
+  const foodSections = getFoodSections(!!bogoHome?.is_live);
+  return (
+    <ModuleHomeSidebarLayout
+      overviewContent={overviewContent}
+      sections={foodSections}
+      routeSection={routeSection}
+    />
   );
 };
 

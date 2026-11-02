@@ -1,25 +1,26 @@
-import { styled, Typography, useMediaQuery, useTheme } from "@mui/material";
+import { NoSsr, styled, Typography } from "@mui/material";
 import { Box } from "@mui/system";
-import { useRouter } from "next/router";
-import React, { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { getApiMessage } from "api-manage/getApiContent";
+import { baseUrl } from "api-manage/MainApi";
 import useGetLastOrderWithoutReview from "api-manage/hooks/react-query/review/useGetLastOrderWithoutReview";
 import useReviewReminderCancel from "api-manage/hooks/react-query/review/useReviewReminderCancel";
 import { useWishListGet } from "api-manage/hooks/react-query/wish-list/useWishListGet";
-
+import CashBackPopup from "components/cash-back-popup/CashBackPopup";
+import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
+import { getGuestId, getToken } from "helper-functions/getToken";
+import { ModuleTypes } from "helper-functions/moduleTypes";
+import { t } from "i18next";
+import { useRouter } from "next/router";
+import React, { useEffect, useMemo, useState } from "react";
+import { toast } from "react-hot-toast";
+import { useDispatch, useSelector } from "react-redux";
 import {
   setFilterData,
   setStoreSelectedItems,
   setStoreSelectedItems2,
 } from "redux/slices/categoryIds";
-import { setWishList } from "redux/slices/wishList";
-import { baseUrl } from "api-manage/MainApi";
-import CashBackPopup from "components/cash-back-popup/CashBackPopup";
-import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
-import { getToken } from "helper-functions/getToken";
-import { ModuleTypes } from "helper-functions/moduleTypes";
-import { t } from "i18next";
 import { setWelcomeModal } from "redux/slices/utils";
+import { setWishList } from "redux/slices/wishList";
 import { CustomStackFullWidth } from "styled-components/CustomStyles.style";
 import PushNotificationLayout from "../PushNotificationLayout";
 import CustomModal from "../modal";
@@ -30,28 +31,45 @@ import Shop from "./module-wise-components/ecommerce";
 import FoodModule from "./module-wise-components/food";
 import Parcel from "./module-wise-components/parcel/Index";
 import Pharmacy from "./module-wise-components/pharmacy/Pharmacy";
-import SearchResult from "./search";
-import TopBanner from "./top-banner";
-import TaxiSearchPanel from "components/home/module-wise-components/rental/components/global/search/TaxiSearchPanel";
-import { useGetWishList } from "api-manage/hooks/react-query/rental-wishlist/useGetWishlist";
-import Rental from "components/home/module-wise-components/rental/Rental";
-import { useGetFailedPayment } from "api-manage/hooks/react-query/useGetFailedPayment";
-import IncompleteOrderModal from "components/home/IncompleteOrderModal";
-import PaymentMethod from "components/checkout/PaymentMethod";
-import useGetOfflinePaymentOptions from "api-manage/hooks/react-query/offlinePayment/useGetOfflinePaymentOptions";
-import { getDigitalMethodFromZone, handleFailedOrderPlace } from "utils/CustomFunctions";
-import { useQuery } from "react-query";
-import { GoogleApi } from "api-manage/hooks/react-query/googleApi";
-import { useUpdatePaymentMethod } from "api-manage/hooks/react-query/payment-method/useUpdatePaymentMethod";
-import { useUpdatePaymentByWallet } from "api-manage/hooks/react-query/useUpdatePaymentByWallet";
+
 import { onErrorResponse } from "api-manage/api-error-response/ErrorResponses";
+import useGetZoneId from "api-manage/hooks/react-query/google-api/useGetZone";
+import useGetOfflinePaymentOptions from "api-manage/hooks/react-query/offlinePayment/useGetOfflinePaymentOptions";
+import { useUpdatePaymentMethod } from "api-manage/hooks/react-query/payment-method/useUpdatePaymentMethod";
+import { useGetWishList } from "api-manage/hooks/react-query/rental-wishlist/useGetWishlist";
+import { useGetFailedPayment } from "api-manage/hooks/react-query/useGetFailedPayment";
+import { useUpdatePaymentByWallet } from "api-manage/hooks/react-query/useUpdatePaymentByWallet";
+import PaymentMethod from "components/checkout/PaymentMethod";
+import ScrollUpButton from "components/common/ScrollUpButton";
+import IncompleteOrderModal from "components/home/IncompleteOrderModal";
+import { resolveFailedPayment } from "helper-functions/failedPayment";
+import {
+  followPaymentRedirect,
+  getRedirectLink,
+} from "helper-functions/paymentRedirect";
+import useMakePayment from "components/home/module-wise-components/rental/rental-api-manage/hooks/react-query/details/useMakePayment";
+import Rental from "components/home/module-wise-components/rental/Rental";
+import ServiceModule from "components/home/module-wise-components/service/Service";
+import TaxiSearchPanel from "components/home/module-wise-components/rental/components/global/search/TaxiSearchPanel";
+import {
+  getDigitalMethodFromZone,
+  handleFailedOrderPlace,
+} from "utils/CustomFunctions";
+import TopBanner from "./top-banner";
+import ModuleSearchBanner from "./module-wise-components/shared/ModuleSearchBanner";
+import RideShareModuleLandingPage from "./module-wise-components/rideShare";
 
 export const HomeComponentsWrapper = styled(Box)(({ theme }) => ({
   width: "100%",
   gap: "8px",
 }));
 
-const HomePageComponents = ({ configData, landingPageData }) => {
+const HomePageComponents = ({
+  configData,
+  landingPageData,
+  routeSection,
+  routeCategory,
+}) => {
   const [wishListsData, setWishListsData] = useState();
   const [orderId, setOrderId] = useState(null);
   const [open, setOpen] = useState(false);
@@ -60,7 +78,6 @@ const HomePageComponents = ({ configData, landingPageData }) => {
   const [openPaymentModal, setOpenPaymentModal] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
-  const [currentTab, setCurrentTab] = useState(0);
   const { profileInfo } = useSelector((state) => state.profileInfo);
   const router = useRouter();
   const dispatch = useDispatch();
@@ -70,41 +87,52 @@ const HomePageComponents = ({ configData, landingPageData }) => {
   const { refetch: refetchFailedPayment, data: failPayment } =
     useGetFailedPayment("", (res) => {
       if (res) {
-        const orderId = res?.order_id;
-        const isHidden = localStorage.getItem(`incomplete_order_hidden_${orderId}`);
+        // Rental answers with `trip_id`, mart/parcel with `order_id`.
+        const orderId = resolveFailedPayment(res)?.id;
+        const isHidden = localStorage.getItem(
+          `incomplete_order_hidden_${orderId}`
+        );
         if (!isHidden) {
           setOpenIncompleteOrder?.(true);
         }
       }
     });
-  const currentLatLng = JSON.parse(
-    window.localStorage.getItem("currentLatLng")
-  );
-  const { data: zoneData } = useQuery(
-    ["zoneId", location],
-    async () => GoogleApi.getZoneId(currentLatLng),
-    {
-      retry: 1,
+  const [currentLatLng, setCurrentLatLng] = useState(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedLatLng = JSON.parse(
+        window.localStorage.getItem("currentLatLng")
+      );
+      setCurrentLatLng(storedLatLng);
     }
-  );
+  }, []);
+
+  // Shares the header's cache entry instead of issuing a second identical
+  // get-zone-id request under a differently-shaped query key.
+  const { data: zoneContent } = useGetZoneId(currentLatLng, !!currentLatLng);
+  // Downstream helpers below still read `zoneData?.data`. Memoised so the
+  // wrapper keeps a stable identity across renders.
+  const zoneData = useMemo(() => ({ data: zoneContent }), [zoneContent]);
   const { mutate: paymentMethodUpdateMutation, isLoading: repayOrderLoading } =
     useUpdatePaymentMethod();
-  const { mutate: walletPaymentMutation } = useUpdatePaymentByWallet()
+  const { mutate: walletPaymentMutation } = useUpdatePaymentByWallet();
   const {
     data: offlinePaymentOptions,
     refetch: refetchOfflinePaymentOptions,
     isLoading: offlineIsLoading,
   } = useGetOfflinePaymentOptions();
+  const failedPayment = resolveFailedPayment(failPayment);
+  const { mutate: rentalPayMutate } = useMakePayment();
   const isZoneDigital = getDigitalMethodFromZone(
-    failPayment?.zone_id,
+    failedPayment?.zoneId,
     zoneData?.data
   );
-  console.log({ failPayment });
   useEffect(() => {
     refetchFailedPayment();
-    refetchOfflinePaymentOptions()
+    refetchOfflinePaymentOptions();
   }, []);
-  console.log({ openIncompleteOrder });
+
   const zoneid =
     typeof window !== "undefined" ? localStorage.getItem("zoneid") : undefined;
 
@@ -116,7 +144,7 @@ const HomePageComponents = ({ configData, landingPageData }) => {
     setWishListsData(response);
     dispatch(setWishList(response));
   };
-  const { refetch } = useWishListGet(onSuccessHandler);
+  const { refetch } = useWishListGet({}, false, onSuccessHandler);
   const { refetch: rentalWishlistRefetch } = useGetWishList(onSuccessHandler);
 
   useEffect(() => {
@@ -131,7 +159,10 @@ const HomePageComponents = ({ configData, landingPageData }) => {
 
   const { refetch: lastReviewRefetch, data } = useGetLastOrderWithoutReview(
     (res) => {
-      if (res?.order_id) {
+      if (
+        res?.order_id &&
+        !localStorage.getItem(`last_order_review_hidden_${res.order_id}`)
+      ) {
         setOrderId(res.order_id);
         setOpen(true);
       }
@@ -158,18 +189,35 @@ const HomePageComponents = ({ configData, landingPageData }) => {
   const getModuleWiseComponents = () => {
     switch (getCurrentModuleType()) {
       case ModuleTypes.GROCERY:
-        return <Grocery configData={configData} />;
+        return <Grocery configData={configData} routeSection={routeSection} />;
       case ModuleTypes.PHARMACY:
-        return <Pharmacy configData={configData} />;
+        return <Pharmacy configData={configData} routeSection={routeSection} />;
       case ModuleTypes.ECOMMERCE:
-        return <Shop configData={configData} />;
+        return <Shop configData={configData} routeSection={routeSection} />;
       case ModuleTypes.FOOD:
-        return <FoodModule configData={configData} />;
+        return (
+          <FoodModule
+            configData={configData}
+            routeSection={routeSection}
+            routeCategory={routeCategory}
+          />
+        );
       case ModuleTypes.PARCEL:
         return <Parcel configData={configData} />;
       case ModuleTypes.RENTAL:
         return (
           <Rental configData={configData} landingPageData={landingPageData} />
+        );
+      case ModuleTypes.SERVICE:
+        return (
+          <ServiceModule configData={configData} routeSection={routeSection} />
+        );
+      case ModuleTypes.RIDE:
+        return (
+          <RideShareModuleLandingPage
+            configData={configData}
+            landingPageData={landingPageData}
+          />
         );
       default:
         return null;
@@ -178,25 +226,34 @@ const HomePageComponents = ({ configData, landingPageData }) => {
 
   const handleClose = () => {
     if (orderId) {
+      localStorage.setItem(`last_order_review_hidden_${orderId}`, "1");
       cancelReviewRefetch();
     }
   };
 
   const handleRateButtonClick = () => {
-    router.push(`/rate-and-review/${orderId}`, undefined, {
-      shallow: true,
-    });
+    router.push(
+      {
+        pathname: "/profile",
+        query: { orderId, page: "my-orders" },
+      },
+      undefined,
+      { shallow: true }
+    );
   };
   const handleCloseWelcomeModal = () => {
     dispatch(setWelcomeModal(false));
   };
   const handlePayment = (mutation) => {
     const handleSuccess = (response) => {
-      toast.success(response.message);
+      // The order APIs hand back an axios response, so the message sits at
+      // `data.message`; the rental hook hands back the payload itself.
+      const message = getApiMessage(response);
+      if (message) toast.success(message);
     };
 
     const formData = {
-      order_id: failPayment?.order_id,
+      order_id: failedPayment?.id,
       _method: "put",
     };
 
@@ -205,165 +262,193 @@ const HomePageComponents = ({ configData, landingPageData }) => {
       onError: onErrorResponse,
     });
   };
+  // Rental retries go to `rental/user/trip/payment`: cash/wallet settle in
+  // place, a gateway answers with the redirect URL to push.
+  const rentalPayment = ({ paymentMethod: method, failed }) => {
+    rentalPayMutate(
+      {
+        trip_id: failed.id,
+        payment_method: method === "cash_on_delivery" ? "cash_payment" : method,
+        payment_gateway:
+          method === "cash_on_delivery" ? "cash_payment" : method,
+        callback_url: `${window.location.origin}/rental/trip-status/${failed.id}`,
+        payment_platform: "web",
+        guest_id: getGuestId(),
+      },
+      {
+        onSuccess: (response) => {
+          if (method === "cash_on_delivery" || method === "wallet") {
+            const message = getApiMessage(response);
+            if (message) toast.success(message);
+            refetchFailedPayment();
+          } else {
+            // The gateway link rides inside the v4.2 `content`, so resolve it
+            // rather than pushing the payload itself.
+            const redirect = getRedirectLink(response);
+            if (!redirect) {
+              toast.error(t("Payment gateway did not return a redirect link."));
+              return;
+            }
+            followPaymentRedirect(redirect, router);
+          }
+          setOpenPaymentModal(false);
+        },
+        onError: onErrorResponse,
+      }
+    );
+  };
   const failedOrderPlace = () => {
     handleFailedOrderPlace({
       paymentMethod,
-      failPayment,
+      paymentFailedData: failPayment,
       handlePayment,
       paymentMethodUpdateMutation,
       walletPaymentMutation,
       profileInfo,
-      orderId: failPayment?.order_id,
+      orderId: failedPayment?.id,
       baseUrl,
-      router
+      router,
+      rentalPayment,
     });
-  }
+  };
 
   return (
     <PushNotificationLayout>
-      <CustomStackFullWidth>
-        <CustomStackFullWidth sx={{ position: "relative" }}>
-          <TopBanner />
-          <CustomStackFullWidth
-            alignItems="center"
-            justifyContent="center"
+      <NoSsr>
+        <CustomStackFullWidth>
+          {/* Food/Grocery/Pharmacy/Ecommerce handle banner+search inside their own sidebar layout */}
+
+          <Box
+            width="100%"
             sx={{
-              position: "absolute",
-              top: { xs: -4, sm: 50 },
-              left: 0,
-              right: 0,
+              mt:
+                moduleType === "rental" || moduleType === "parcel"
+                  ? { xs: 0, md: "34px" }
+                  : { xs: "34px", md: "34px" },
             }}
           >
-            <SearchWithTitle
-              currentTab={currentTab}
-              zoneid={zoneid}
-              token={token}
-              searchQuery={
-                router.query?.data_type === "searched"
-                  ? router.query.search
-                  : ""
-              }
-              name={router.query.name}
-              query={router.query}
-            />
-          </CustomStackFullWidth>
+            {getModuleWiseComponents()}
+          </Box>
         </CustomStackFullWidth>
-        {moduleType === "rental" && (
-          <Box>
-            <TaxiSearchPanel position="relative" />
-          </Box>
+
+        {open && (
+          <CustomModal openModal={open} handleClose={handleClose}>
+            <LastOrderReview
+              handleClose={handleClose}
+              handleRateButtonClick={handleRateButtonClick}
+              productImage={data?.images}
+            />
+          </CustomModal>
         )}
-        {router.query.data_type ? (
-          <SearchResult
-            key={router.query.id}
-            searchValue={router.query.search}
-            name={router.query.name}
-            isSearch={router.query.fromSearch}
-            routeTo={router.query.from}
-            configData={configData}
-            currentTab={currentTab}
-            setCurrentTab={setCurrentTab}
-          />
-        ) : (
-          <Box width="100%">{getModuleWiseComponents()}</Box>
-        )}
-      </CustomStackFullWidth>
-      {open && (
-        <CustomModal openModal={open} handleClose={handleClose}>
-          <LastOrderReview
-            handleClose={handleClose}
-            handleRateButtonClick={handleRateButtonClick}
-            productImage={data?.images}
-          />
-        </CustomModal>
-      )}
-      <CustomModal
-        handleClose={handleCloseWelcomeModal}
-        openModal={welcomeModal}
-        closeButton
-      >
-        <Box
-          sx={{
-            maxWidth: "382px",
-            width: "95vw",
-            px: 1.3,
-            pb: 4,
-            textAlign: "center",
-            img: {
-              height: "unset",
-            },
-          }}
-        >
-          <img
-            src={"/static/sign-up-welcome.svg"}
-            alt="welcome"
-            width={183}
-            height={183}
-          />
-          <Box maxWidth={"308px"} mx={"auto"} mt={2}>
-            <Typography variant="h6" color="primary" mb={2}>
-              {t(`Welcome to ! ${configData?.business_name}`)}
-            </Typography>
-            <Typography variant="body2" lineHeight={"1.5"}>
-              {profileInfo?.is_valid_for_discount
-                ? t(
-                  `Get ready for a special welcome gift, enjoy a special discount on your first order within`
-                ) +
-                " " +
-                profileInfo?.validity +
-                "."
-                : " "}
-              {"  "}
-              {t(`Start exploring the best services around you.`)}
-            </Typography>
-          </Box>
-        </Box>
-      </CustomModal>
-      {token && getCurrentModuleType() !== "parcel" && <CashBackPopup />}
-      {token && failPayment && !(Array.isArray(failPayment) && failPayment.length === 0) && (
         <CustomModal
-          handleClose={() => {
-            setOpenIncompleteOrder(false);
-            // localStorage.setItem("incompleteOrderModalClosedAt", Date.now().toString());
-          }}
-          openModal={openIncompleteOrder}
+          handleClose={handleCloseWelcomeModal}
+          openModal={welcomeModal}
           closeButton
         >
-          <IncompleteOrderModal
-            dontShowAgain={dontShowAgain}
-            setDontShowAgain={setDontShowAgain}
-            setOpenPaymentModal={setOpenPaymentModal} setOpenIncompleteOrder={setOpenIncompleteOrder} failPaymentOrderData={failPayment} />
+          <Box
+            sx={{
+              maxWidth: "382px",
+              width: "95vw",
+              px: 1.3,
+              pb: 4,
+              textAlign: "center",
+              img: {
+                height: "unset",
+              },
+            }}
+          >
+            <img
+              src={"/static/sign-up-welcome.svg"}
+              alt="welcome"
+              width={183}
+              height={183}
+            />
+            <Box maxWidth={"308px"} mx={"auto"} mt={2}>
+              <Typography variant="h6" color="primary" mb={2}>
+                {t("Welcome to ! {{name}}", {
+                  name: configData?.business_name,
+                })}
+              </Typography>
+              <Typography variant="body2" lineHeight={"1.5"}>
+                {profileInfo?.is_valid_for_discount
+                  ? t(
+                      `Get ready for a special welcome gift, enjoy a special discount on your first order within`
+                    ) +
+                    " " +
+                    profileInfo?.validity +
+                    "."
+                  : " "}
+                {"  "}
+                {t(`Start exploring the best services around you.`)}
+              </Typography>
+            </Box>
+          </Box>
         </CustomModal>
-      )}
-      <CustomModal
-        openModal={openPaymentModal}
-        handleClose={() => setOpenPaymentModal(false)}
-      >
-        <PaymentMethod
-          setPaymentMethod={setPaymentMethod}
-          paymentMethod={paymentMethod}
-          zoneData={zoneData}
-          configData={configData}
-          orderType={failPayment?.order_type}
-          usePartialPayment={false}
-          setOpenModel={setOpenPaymentModal}
-          forprescription={failPayment?.prescription_order}
-          offlinePaymentOptions={offlinePaymentOptions}
-          paymentMethodImage={null}
-          setPaymentMethodImage={null}
-          setSwitchToWallet={null}
-          isZoneDigital={isZoneDigital}
-          handlePartialPayment={() => setPaymentMethod("wallet")}
-          walletBalance={profileInfo?.wallet_balance}
-          removePartialPayment={null}
-          switchToWallet={null}
-          customerData={{ data: profileInfo }}
-          failed
-          payableAmount={failPayment?.order_amount}
-          failedOrderPlace={failedOrderPlace}
-
-        />
-      </CustomModal>
+        {token && getCurrentModuleType() !== "parcel" && <CashBackPopup />}
+        {token &&
+          failPayment &&
+          !(Array.isArray(failPayment) && failPayment.length === 0) && (
+            <CustomModal
+              handleClose={() => {
+                setOpenIncompleteOrder(false);
+                localStorage.setItem(
+                  "incompleteOrderModalClosedAt",
+                  Date.now().toString()
+                );
+                // Permanently hide this specific incomplete order once the
+                // user dismisses the modal — the check at line 83
+                // (`incomplete_order_hidden_${orderId}`) then short-circuits
+                // any future renders for that order.
+                const hiddenOrderId = failedPayment?.id;
+                if (hiddenOrderId != null) {
+                  localStorage.setItem(
+                    `incomplete_order_hidden_${hiddenOrderId}`,
+                    "1"
+                  );
+                }
+              }}
+              openModal={openIncompleteOrder}
+              closeButton
+            >
+              <IncompleteOrderModal
+                dontShowAgain={dontShowAgain}
+                setDontShowAgain={setDontShowAgain}
+                setOpenPaymentModal={setOpenPaymentModal}
+                setOpenIncompleteOrder={setOpenIncompleteOrder}
+                failPaymentOrderData={failPayment}
+              />
+            </CustomModal>
+          )}
+        <CustomModal
+          openModal={openPaymentModal}
+          handleClose={() => setOpenPaymentModal(false)}
+        >
+          <PaymentMethod
+            setPaymentMethod={setPaymentMethod}
+            paymentMethod={paymentMethod}
+            zoneData={zoneData}
+            configData={configData}
+            orderType={failedPayment?.orderType}
+            usePartialPayment={false}
+            setOpenModel={setOpenPaymentModal}
+            forprescription={failedPayment?.prescriptionOrder}
+            offlinePaymentOptions={offlinePaymentOptions}
+            paymentMethodImage={null}
+            setPaymentMethodImage={null}
+            setSwitchToWallet={null}
+            isZoneDigital={isZoneDigital}
+            handlePartialPayment={() => setPaymentMethod("wallet")}
+            walletBalance={profileInfo?.wallet_balance}
+            removePartialPayment={null}
+            switchToWallet={null}
+            customerData={{ data: profileInfo }}
+            failed
+            payableAmount={failedPayment?.dueAmount}
+            failedOrderPlace={failedOrderPlace}
+          />
+        </CustomModal>
+        <ScrollUpButton />
+      </NoSsr>
     </PushNotificationLayout>
   );
 };

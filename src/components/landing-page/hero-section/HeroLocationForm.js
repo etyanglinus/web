@@ -41,7 +41,7 @@ import MapMarkerIcon from "../assets/MapMarkerIcon";
 import dynamic from "next/dynamic";
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
 const MapModal = dynamic(() => import("../../Map/MapModal"));
-const HeroLocationForm = () => {
+const HeroLocationForm = ({ onLocationSaved }) => {
   const theme = useTheme();
   const isXSmall = useMediaQuery(theme.breakpoints.down(600));
   const { t } = useTranslation();
@@ -164,11 +164,14 @@ const HeroLocationForm = () => {
 
   useEffect(() => {
     if (geoCodeResults?.results && showCurrentLocation) {
-      setCurrentLocation(geoCodeResults?.results[0]?.formatted_address);
+      setCurrentLocation(geoCodeResults?.results?.[0]?.formatted_address);
     }
   }, [geoCodeResults, location]);
 
-  const { data: zoneData } = useGetZoneId(location, zoneIdEnabled);
+  const { data: zoneData, isLoading: isLoadingZone } = useGetZoneId(
+    location,
+    zoneIdEnabled
+  );
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -186,11 +189,14 @@ const HeroLocationForm = () => {
   );
   //
   useEffect(() => {
-    if (placeDetails) {
-      setLocation({
-        lat: placeDetails?.location?.latitude,
-        lng: placeDetails?.location?.longitude,
-      });
+    // place-api-details answers 200 with `{ error: { … } }` for a place id
+    // Google no longer recognises. That body is truthy but carries no
+    // `location`, and writing it here parks `location` as `{lat: undefined}`
+    // — which keeps the Pick/Discover button disabled with no way to recover.
+    const lat = placeDetails?.location?.latitude;
+    const lng = placeDetails?.location?.longitude;
+    if (lat !== undefined && lng !== undefined) {
+      setLocation({ lat, lng });
     }
   }, [placeDetails]);
 
@@ -205,10 +211,14 @@ const HeroLocationForm = () => {
   const onSuccessHandler = (response) => {
     dispatch(setWishList(response));
   };
-  const { refetch: wishlistRefetch } = useWishListGet(onSuccessHandler);
+  const { refetch: wishlistRefetch } = useWishListGet({}, false, onSuccessHandler);
   const setLocationEnable = async () => {
     setGeoLocationEnable(true);
     setZoneIdEnabled(true);
+    if (currentLocation && location && !isLoadingZone && !zoneData) {
+      toast.error(t("Sorry, we are not available in this area yet."));
+      return;
+    }
     if (currentLocation && location) {
       if (getToken()) {
         if (moduleType === "rental") {
@@ -222,6 +232,7 @@ const HeroLocationForm = () => {
       //handleModalClose();
 
       toast.success(t("New location has been set."));
+      onLocationSaved?.(currentLocation);
       setOpenModuleSelection(true);
     } else {
       toast.error(t("Location is required."), {
@@ -299,7 +310,7 @@ const HeroLocationForm = () => {
                 <HeroFormItem ref={excludedDivRef}>
                   <Box
                     sx={{
-                      backgroundColor: (theme) => theme.palette.neutral[300],
+                      
                       // width: "100%",
                       alignItems: "center",
                       justifyContent: "center",
@@ -363,8 +374,13 @@ const HeroLocationForm = () => {
                   height: "100%",
                   width: "100%",
                   borderRadius: "0px 8px 8px 0px",
-                  // cursor: (!location?.lat || isLoadingGeoCode) ? "not-allowed" : "pointer"
-                  "&:disabled": {
+                  transition: "all 0.2s ease",
+                  "&.Mui-disabled": {
+                    backgroundColor: (theme) =>
+                      theme.palette.action.disabledBackground,
+                    color: (theme) => theme.palette.action.disabled,
+                    boxShadow: "none",
+                    opacity: 1,
                     cursor: "not-allowed",
                     pointerEvents: "all !important",
                   },
@@ -402,6 +418,7 @@ const HeroLocationForm = () => {
           closeModal={handleCloseModuleModal}
           setOpenModuleSelection={setOpenModuleSelection}
           disableAutoFocus
+          autoSelect
         />
       )}
     </>

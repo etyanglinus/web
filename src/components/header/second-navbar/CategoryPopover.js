@@ -26,8 +26,8 @@ const GridItem = ({
             category?.childes?.length > 0
               ? "1.8rem"
               : hasChildLength()?.length === 0
-              ? ".7rem"
-              : "1.4rem",
+                ? ".7rem"
+                : "1.4rem",
           cursor: "pointer",
           transition: "all ease 0.5s",
           mt: hasChildLength()?.length === 0 && index !== 0 && ".7rem",
@@ -72,25 +72,24 @@ const GridItem = ({
 
 const CategoryPopover = ({ handlePopoverCloseSub, categories }) => {
   const router = useRouter();
-
+  const queryModule = router?.query?.module || router?.query?.module_id;
+  const moduleValue = Array.isArray(queryModule)
+    ? queryModule[0]
+    : queryModule || getModuleId();
   const handleClick = (item) => {
     const query =
       getCurrentModuleType() === "rental"
         ? {
-            pathname: "/rental/vehicle-search",
-            query: { categoryId: item?.id },
-          }
+          pathname: "/rental/vehicle-search",
+          query: { categoryId: item?.id },
+        }
         : {
-            pathname: "/home",
-            query: {
-              search: "category",
-              id: item?.id,
-              module_id: getModuleId(),
-              name: (item?.name),
-              data_type: "category",
-              from: "nav",
-            },
-          };
+          pathname: `/home/category/${item?.slug || item?.id}`,
+          query: {
+            id: item?.id,
+            module: moduleValue,
+          },
+        };
 
     router.push(query);
     handlePopoverCloseSub?.();
@@ -98,13 +97,10 @@ const CategoryPopover = ({ handlePopoverCloseSub, categories }) => {
 
   const handleClickToSubCategory = (item) => {
     router.push({
-      pathname: "/home",
+      pathname: `/home/category/${item?.slug || item?.id}`,
       query: {
-        search: "category",
         id: item?.id,
-        module_id: `${getModuleId()}`,
-        name: (item?.name),
-        data_type: "category",
+        module: moduleValue,
       },
     });
     handlePopoverCloseSub?.();
@@ -200,6 +196,7 @@ const CategoryPopover = ({ handlePopoverCloseSub, categories }) => {
                 redirect="/categories"
                 handlePopoverCloseSub={handlePopoverCloseSub}
                 buttonType="contained"
+                moduleValue={moduleValue}
               />
             </Stack>
           )}

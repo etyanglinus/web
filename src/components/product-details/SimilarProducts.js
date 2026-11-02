@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import {
   CustomStackFullWidth,
   SliderCustom,
@@ -6,14 +6,13 @@ import {
 import { Grid, Typography } from "@mui/material";
 import { t } from "i18next";
 import { Stack } from "@mui/system";
-import Slider from "react-slick";
+import CustomSlider from "components/common/CustomSlider";
 import { ProductsReviewSettings } from "./ProductsReviewSettings";
 import ProductReviewCard from "./product-details-section/ProductReviewCard";
 import ProductCard, { CardWrapper } from "../cards/ProductCard";
 
 import useGetSimilarProduct from "../../api-manage/hooks/react-query/product-details/useGetSimilarProduct";
 import { Skeleton } from "@mui/material";
-import { settings } from "../home/popular-items-nearby/SliderSettings";
 import ProductCardShimmer from "../search/ProductCardShimmer";
 const Shimmer = () => {
   return (
@@ -29,7 +28,6 @@ const SimilarProducts = ({ productId }) => {
     refetch();
   }, [productId]);
 
-  const SliderRef = useRef(null);
   return (
     <>
       {data?.length > 0 && (
@@ -38,20 +36,19 @@ const SimilarProducts = ({ productId }) => {
             {t("Similar Products")}
           </Typography>
           <SliderCustom>
-            <Slider ref={SliderRef} {...settings}>
-              {data &&
-                data?.length > 0 &&
-                data?.map((item, index) => {
-                  return (
-                    <ProductCard
-                      key={index}
-                      item={item}
-                      changed_bg="true"
-                      horizontalcard="false"
-                    />
-                  );
-                })}
-            </Slider>
+            <CustomSlider
+              items={data ?? []}
+              renderItem={(item) => (
+                <ProductCard
+                  item={item}
+                  changed_bg="true"
+                  horizontalcard="false"
+                />
+              )}
+              arrowVariant="inline"
+              slidesPerView={1}
+              spaceBetween={16}
+            />
           </SliderCustom>
           {isFetching && (
             <Grid container>

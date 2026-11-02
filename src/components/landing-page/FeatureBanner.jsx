@@ -1,7 +1,7 @@
 import { Stack, alpha } from "@mui/material";
 import { Box } from "@mui/system";
 import React from "react";
-import Slider from "react-slick";
+import CustomSlider from "components/common/CustomSlider";
 import {
   CustomStackFullWidth,
   SliderCustom,
@@ -10,21 +10,18 @@ import CustomImageContainer from "../CustomImageContainer";
 import CustomContainer from "../container";
 import NextImage from "components/NextImage";
 
+// react-slick breakpoint:600 meant "apply for width <= 600" (descending);
+// this Swiper breakpoint means "apply for width >= 601" (ascending).
+const featureBannerBreakpoints = {
+  601: { slidesPerView: 2 },
+};
+
 const Banners = ({ landingPageData, isSmall }) => {
   const infiniteManage = () => {
     if (isSmall) {
-      if (landingPageData?.promotion_banners?.length === 1) {
-        return false;
-      } else {
-        return true;
-      }
-    } else {
-      if (landingPageData?.promotion_banners?.length > 3) {
-        return true;
-      } else {
-        return false;
-      }
+      return landingPageData?.promotion_banners?.length !== 1;
     }
+    return landingPageData?.promotion_banners?.length > 3;
   };
 
   const slidesToShowManage = () => {
@@ -83,86 +80,48 @@ const Banners = ({ landingPageData, isSmall }) => {
   };
   const sliderManage = () => {
     return (
-      <SliderCustom
-        sx={{
-          "& .slick-slider": {
-            "& .slick-slide": {
-              padding: { xs: "5px", md: "11px" },
-              "img": {
+      <SliderCustom>
+        <CustomSlider
+          items={landingPageData?.promotion_banners_full_url ?? []}
+          getKey={(item, index) => index}
+          renderItem={(item) => (
+            <Box
+              sx={{
+                position: "relative",
+                height: "175px",
                 width: "100%",
-              }
-            },
-          },
-        }}
-      >
-        <Slider {...settings}>
-          {landingPageData?.promotion_banners_full_url?.map((item, index) => {
-            return (
-              <Box
-                key={index}
-                sx={{
-
-                  position: "relative",
-                  height: "175px",
-                  width: "100%",
-                  borderRadius: "5px",
-                  overflow: "hidden",
-                  "&:hover": {
-                    img: {
-                      transform: "scale(1.1)",
-                      transition: "transform 0.8s ease-in-out",
-                    },
+                borderRadius: "5px",
+                overflow: "hidden",
+                "&:hover": {
+                  img: {
+                    transform: "scale(1.1)",
+                    transition: "transform 0.8s ease-in-out",
                   },
-                }}
-              >
-                <NextImage
-                  src={item}
-                  alt="banners"
-                  height={173}
-                  width={394}
-                  objectFit="cover"
-                  borderRadius="20px"
-                />
-              </Box>
-            );
-          })}
-        </Slider>
+                },
+              }}
+            >
+              <NextImage
+                src={item}
+                alt="banners"
+                height={173}
+                width={394}
+                objectFit="cover"
+                borderRadius="20px"
+              />
+            </Box>
+          )}
+          arrowVariant="none"
+          allowOverflowY={false}
+          loop={infiniteManage()}
+          autoplay
+          autoplayDelay={3000}
+          speed={2000}
+          slidesPerView={1}
+          spaceBetween={16}
+          breakpoints={featureBannerBreakpoints}
+        />
       </SliderCustom>
     );
-  };
-  const settings = {
-    dots: false,
-    infinite: infiniteManage(),
-    slidesToShow: 2,
-    slidesToScroll: 1,
-    autoplay: true,
-    speed: 2000,
-    autoplaySpeed: 3000,
-    pauseOnHover: true,
-    responsive: [
-      {
-        breakpoint: 1024,
-        settings: {
-          slidesToShow: 2,
-          slidesToScroll: 1,
-        },
-      },
-      {
-        breakpoint: 600,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-          initialSlide: 1,
-        },
-      },
-      {
-        breakpoint: 480,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-        },
-      },
-    ],
   };
   const singleImageManage = () => {
     return (

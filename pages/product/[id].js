@@ -1,70 +1,73 @@
 import React, { useEffect, useState } from "react";
 import CssBaseline from "@mui/material/CssBaseline";
+import dynamic from "next/dynamic";
 import MainLayout from "../../src/components/layout/MainLayout";
-import ProductDetails from "../../src/components/product-details/ProductDetails";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import SEO from "../../src/components/seo";
 import CustomContainer from "../../src/components/container";
-import useScrollToTop from "api-manage/hooks/custom-hooks/useScrollToTop";
-import {NoSsr} from "@mui/material";
+import { setConfigData } from "redux/slices/configData";
+import { getApiContent } from "api-manage/getApiContent";
+import fetchWithTimeoutRetry from "../../src/utils/fetchWithTimeoutRetry";
+import ProductDetailsSkeleton from "../../src/components/common/skeletons/ProductDetailsSkeleton";
+const ProductDetails = dynamic(
+  () => import("../../src/components/product-details/ProductDetails"),
+  { ssr: false, loading: () => <ProductDetailsSkeleton /> },
+);
 
-const Index = ({ configData, productDetailsData, landingPageData }) => {
+const Index = ({ configData, productDetailsData, isCampaign }) => {
+  const dispatch = useDispatch();
   const { cartList, campaignItem } = useSelector((state) => state.cart);
   const [productDetails, setProductDetails] = useState([]);
+
+
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
+
   useEffect(() => {
-    handleProductDetails();
-  }, [productDetailsData, cartList]);
+    if (configData) {
+      dispatch(setConfigData(configData));
+    }
+  }, [configData]);
 
-  const handleProductDetails = () => {
+  useEffect(() => {
     if (productDetailsData) {
-      if (cartList?.length > 0) {
-        const isExist = cartList?.find(
-          (item) => item?.id === productDetailsData?.id
-        );
-
-        if (isExist) {
-          let tempData = {
-            ...isExist,
-            store_details: productDetailsData?.store_details,
-          };
-          setProductDetails([tempData]);
-        } else {
-          setProductDetails([productDetailsData]);
-        }
+      const isExist = cartList?.find(
+        (item) => item?.id === productDetailsData?.id,
+      );
+      if (isExist) {
+        setProductDetails([
+          { ...isExist, store_details: productDetailsData?.store_details },
+        ]);
       } else {
         setProductDetails([productDetailsData]);
       }
-    } else {
-      //productDetailsData only be null if this page is for campaign
+    } else if (isCampaign) {
       setProductDetails([{ ...campaignItem, isCampaignItem: true }]);
+    } else {
+      // productDetailsData is null due to a fetch failure (not the campaign flow) — show nothing rather than a bogus item.
+      setProductDetails([]);
     }
-  };
+  }, [productDetailsData?.id, cartList, isCampaign]);
+
   return (
     <>
       <CssBaseline />
       <SEO
-        title={
-          configData
-            ? `${productDetailsData?.name || productDetails[0]?.name}`
-            : "Loading..."
-        }
-        image={`${configData?.base_urls?.item_image_url}/${productDetailsData?.image}`}
+        title={productDetailsData?.meta_title}
+        image={productDetailsData?.meta_image}
         businessName={configData?.business_name}
-        description={`${productDetailsData?.description}`}
+        description={productDetailsData?.meta_description}
         configData={configData}
+        robotsMeta={productDetailsData?.meta_data}
       />
-      <MainLayout configData={configData} landingPageData={landingPageData}>
+      <MainLayout configData={configData}>
         <CustomContainer>
           {productDetails.length > 0 && (
-            <NoSsr>
             <ProductDetails
               productDetailsData={productDetails[0]}
               configData={configData}
             />
-            </NoSsr>
           )}
         </CustomContainer>
       </MainLayout>
@@ -73,59 +76,90 @@ const Index = ({ configData, productDetailsData, landingPageData }) => {
 };
 
 export default Index;
+
 export const getServerSideProps = async (context) => {
-  const { req } = context;
-  const language = req.cookies.languageSetting;
-  const configRes = await fetch(
-    `${process.env.NEXT_PUBLIC_BASE_URL}/api/v1/config`,
-    {
+  const { req, res, query } = context;
+  const language = req.cookies.languageSetting || "en";
+  const productId = query.id;
+  const moduleId = query.module || query.module_id;
+  const isCampaign = query?.campaign === "1";
+
+  const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || "").replace(/\/+$/, "");
+  const origin = process.env.NEXT_CLIENT_HOST_URL;
+
+  console.time("Fetch Config + Product Details");
+  const [configSettled, productDetailsSettled] = await Promise.allSettled([
+    fetchWithTimeoutRetry(`${baseUrl}/api/v1/config`, {
       method: "GET",
       headers: {
-        "X-software-id": 33571750,
         "X-server": "server",
-        origin: process.env.NEXT_CLIENT_HOST_URL,
+        origin,
         "X-localization": language,
       },
-    }
-  );
-  const config = await configRes.json();
-  const productId = context.query.id;
-  const moduleId = context.query.module_id;
-  const productType = context.query?.product_type;
-  let productDetails = null;
-  let productDetailsData = null;
-  if (!productType) {
-    productDetails = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_URL}/api/v1/items/details/${productId}`,
+    }),
+    fetchWithTimeoutRetry(
+      `${baseUrl}/api/v1/items/details/${productId}${
+        isCampaign ? "?campaign=1" : ""
+      }`,
       {
         method: "GET",
         headers: {
           moduleId: moduleId,
           "X-localization": language,
         },
-      }
-    );
-    productDetailsData = await productDetails.json();
-  }
-  const landingPageRes = await fetch(
-    `${process.env.NEXT_PUBLIC_BASE_URL}/api/v1/react-landing-page`,
-    {
-      method: "GET",
-      headers: {
-        "X-software-id": 33571750,
-        "X-server": "server",
-        origin: process.env.NEXT_CLIENT_HOST_URL,
-        "X-localization": language,
       },
+    ),
+  ]);
+  console.timeEnd("Fetch Config + Product Details");
+
+  // configData powers the header/layout/business info — it must always load, no graceful degrade.
+  if (configSettled.status === "rejected") {
+    console.error("config network error:", configSettled.reason?.message);
+    return { notFound: true };
+  }
+  const configRes = configSettled.value;
+  if (!configRes.ok) {
+    return { notFound: true };
+  }
+
+  let configData;
+  try {
+    configData = getApiContent(await configRes.json());
+  } catch (error) {
+    console.error("config parse error:", error.message);
+    return { notFound: true };
+  }
+
+  // productDetailsData can gracefully degrade to null on a pure network/timeout failure.
+  let productDetailsData = null;
+  if (productDetailsSettled.status === "rejected") {
+    console.error(
+      "product_details network error:",
+      productDetailsSettled.reason?.message,
+    );
+  } else {
+    const productDetailsRes = productDetailsSettled.value;
+    if (!productDetailsRes.ok) {
+      return { notFound: true };
     }
+    try {
+      productDetailsData = getApiContent(await productDetailsRes.json());
+    } catch (error) {
+      console.error("product_details parse error:", error.message);
+      return { notFound: true };
+    }
+  }
+
+  res.setHeader(
+    "Cache-Control",
+    "public, s-maxage=60, stale-while-revalidate=300",
   );
-  const landingPageData = await landingPageRes.json();
 
   return {
     props: {
-      configData: config,
-      productDetailsData: !productType ? productDetailsData : null,
-      landingPageData: landingPageData,
+      configData,
+      productDetailsData,
+      isCampaign,
     },
   };
 };

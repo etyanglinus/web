@@ -12,6 +12,7 @@ import { useRouter } from "next/router";
 import { useTheme } from "@mui/material/styles";
 import ConversationInfoTop from "./ConversationInfoTop";
 import LoadingBox from "./LoadingBox";
+import ChatDetailShimmer from "../ai-chatbot/ChatDetailShimmer";
 import { useGetChannelList } from "api-manage/hooks/react-query/chat/useGetChannelLists";
 import { onErrorResponse } from "api-manage/api-error-response/ErrorResponses";
 import { useGetConversation } from "api-manage/hooks/react-query/chat/useGetConversation";
@@ -36,6 +37,7 @@ const Chatting = ({ configData }) => {
 	const [receiverImage, setReceiverImage] = useState();
 	const [userType, setUserType] = useState("");
 	const [resetState, setResetState] = useState(false);
+	const [isConversationLoading, setIsConversationLoading] = useState(false);
 	const mdUp = useMediaQuery((theme) => theme.breakpoints.up("md"));
 	const mdDown = useMediaQuery((theme) => theme.breakpoints.down("md"));
 	const router = useRouter();
@@ -67,8 +69,14 @@ const Chatting = ({ configData }) => {
 	const handleToggleSidebar = () => {
 		setIsSidebarOpen((prevState) => !prevState);
 	};
+	// The old API wrapped the rows in `conversations`; v4.2 returns them under
+	// `content.data`, which the hook now unwraps to a plain array. Accept either
+	// and never store undefined — ContactLists does `channelList.length`.
+	const toChannelArray = (res) =>
+		Array.isArray(res) ? res : res?.conversations ?? res?.data ?? [];
+
 	const handleChatListOnSuccess = (res) => {
-		setChannelList(res.conversations);
+		setChannelList(toChannelArray(res));
 	};
 	const {
 		refetch: refetchChannelList,
@@ -76,9 +84,9 @@ const Chatting = ({ configData }) => {
 		isLoading: channelLoading,
 	} = useGetChannelList(handleChatListOnSuccess);
 
-	const handleConFetchOnSuccess = (res) => {
-		setConversationData(res.pages[0]);
-	};
+	// const handleConFetchOnSuccess = (res) => {
+	// 	setConversationData(res.pages[0]);
+	// };
 	const {
 		data,
 		isSuccess,
@@ -100,7 +108,7 @@ const Chatting = ({ configData }) => {
 			setChannelId(conversationId);
 			setScrollBottom(true);
 			const tempReceiver =
-				channelList.length !== 0 &&
+				channelList?.length !== 0 &&
 				channelList.filter((item) => item.id == conversationId);
 			setReceiver(tempReceiver[0]);
 		}
@@ -115,7 +123,7 @@ const Chatting = ({ configData }) => {
 	useEffect(() => {
 		if (id && routeName && type) {
 			const tempReceiver =
-				channelList.length !== 0 &&
+				channelList?.length !== 0 &&
 				channelList.filter((item) => {
 					if (type === "vendor") {
 						return item?.receiver?.vendor_id == id;
@@ -139,16 +147,18 @@ const Chatting = ({ configData }) => {
 
 	useEffect(() => {
 		if (channelId) {
-			refetch();
+			setMessagesData([]);
+			setIsConversationLoading(true);
+			refetch().finally(() => setIsConversationLoading(false));
 		}
 	}, [channelId]);
 
 	useEffect(() => {
 		setMessagesData([data]);
 	}, [data]);
-	const handleChannelOnClick = async (value) => {
+	const handleChannelOnClick = (value) => {
 		setReceiverId(null);
-		await refetchChannelList();
+		refetchChannelList();
 		if (value.receiver_type === "admin") {
 			setApiFor("admin_id");
 			setChannelId("admin");
@@ -211,7 +221,7 @@ const Chatting = ({ configData }) => {
 
 	const handleSearchFetchOnSuccess = (res) => {
 		if (res) {
-			setChannelList(res.conversations);
+			setChannelList(toChannelArray(res));
 		}
 	};
 	const {
@@ -264,12 +274,7 @@ const Chatting = ({ configData }) => {
 	return (
 		<PushNotificationLayout refetch={refetch} pathName="chat">
 			<CustomBoxFullWidth
-				mt={{
-					xs: "1rem",
-					md: "2rem",
-					paddingInlineEnd: "1rem",
-					paddingBlockEnd: "1rem",
-				}}
+				p={{ xs: "0px", md: "16px" }}
 			>
 				<CustomStackFullWidth spacing={1} direction="row">
 					{mdDown ? (
@@ -334,15 +339,15 @@ const Chatting = ({ configData }) => {
 						/>
 					)}
 
-					<Stack
-						width={mdDown ? (isSidebarOpen ? "" : "100%") : "100%"}
+					{(!mdDown || !isSidebarOpen) && <Stack
+						width="100%"
 						backgroundColor={alpha(
 							theme.palette.background.default,
 							0.6
 						)}
-						borderRadius="0px 10px 10px 0px"
+						borderRadius={mdDown ? "10px" : "0px 10px 10px 0px"}
 						sx={{
-							borderLeft: `1px solid ${theme.palette.neutral[200]}`,
+							borderLeft: mdDown ? "none" : `1px solid ${theme.palette.neutral[200]}`,
 						}}
 					>
 						{!isSidebarOpen && resetState && (
@@ -367,6 +372,15 @@ const Chatting = ({ configData }) => {
 						)}
 
 						{channelId &&
+							isConversationLoading &&
+							!isSidebarOpen && (
+								<CustomBoxFullWidth p={2}>
+									<ChatDetailShimmer />
+								</CustomBoxFullWidth>
+							)}
+
+						{channelId &&
+							!isConversationLoading &&
 							messagesData.length > 0 &&
 							!isFetchingNextPage &&
 							!isSidebarOpen && (
@@ -388,7 +402,7 @@ const Chatting = ({ configData }) => {
 						{isFetchingNextPage && <LoadingBox />}
 
 						{!channelId && !mdDown && <EmptyView />}
-					</Stack>
+					</Stack>}
 				</CustomStackFullWidth>
 			</CustomBoxFullWidth>
 		</PushNotificationLayout>

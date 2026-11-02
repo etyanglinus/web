@@ -1,21 +1,20 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { CustomStackFullWidth } from "styled-components/CustomStyles.style";
-import { Button, Card, Typography, useTheme } from "@mui/material";
+import {
+  alpha,
+  Box,
+  Card,
+  IconButton,
+  Typography,
+  useTheme,
+} from "@mui/material";
 import { Stack } from "@mui/system";
 import { useTranslation } from "react-i18next";
 import CustomTextFieldWithFormik from "../../form-fields/CustomTextFieldWithFormik";
-import PinDropIcon from "@mui/icons-material/PinDrop";
-import SaveAddress from "../../SaveAddress";
-import GetLocationFrom from "./GetLocationFrom";
 import CustomPhoneInput from "../../custom-component/CustomPhoneInput";
 import { getLanguage } from "helper-functions/getLanguage";
-import { getToken } from "helper-functions/getToken";
 import dynamic from "next/dynamic";
-import CustomModal from "components/modal";
 const MapModal = dynamic(() => import("../../Map/MapModal"));
-import { IconButton, } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
-import MapIcon from '@mui/icons-material/Map';
 
 const SenderInfoForm = ({
   addAddressFormik,
@@ -27,83 +26,59 @@ const SenderInfoForm = ({
   senderFormattedAddress,
   setSenderFormattedAddress,
   setSenderLocation,
-  senderRoadHandler,
-  senderHouseHandler,
-  senderFloorHandler,
   senderEmailHandler,
 }) => {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const [openSave, setOpenSave] = useState(false)
-  const [currentLocationValue, setCurrentLactionValue] = useState({
-    description: null,
-  });
-  const [senderOptionalAddress, setSenderOptionalAddress] = useState({});
-  const [testLocation, setTestLocation] = useState(null);
   const theme = useTheme();
+  const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
-  const handleClose = () => {
-    setOpen(false);
-  };
+  const handleClose = () => setOpen(false);
 
-  useEffect(() => {
-    if (senderFormattedAddress) {
-      setCurrentLactionValue({
-        description: senderFormattedAddress,
-      });
-      setTestLocation(senderFormattedAddress);
-    } else {
-      setCurrentLactionValue({
-        description: "",
-      });
-    }
-  }, [senderFormattedAddress]);
-
-  useEffect(() => {
-    senderRoadHandler(
-      senderOptionalAddress?.road
-        ? senderOptionalAddress?.road
-        : addAddressFormik.values.senderRoad
-    );
-    senderFloorHandler(
-      senderOptionalAddress?.floor
-        ? senderOptionalAddress?.floor
-        : addAddressFormik.values.senderFloor
-    );
-    senderHouseHandler(
-      senderOptionalAddress?.house
-        ? senderOptionalAddress?.house
-        : addAddressFormik.values.senderHouse
-    );
-  }, [senderOptionalAddress]);
   const lanDirection = getLanguage() ? getLanguage() : "ltr";
+  const hasLocation = !!senderFormattedAddress;
 
   return (
     <CustomStackFullWidth height="100%">
-      <Card sx={{ padding: "1.2rem", height: "100%", backgroundColor: theme.palette.background.paper, border: `1px solid rgba(0, 0, 0, 0.05)` }}>
-        <CustomStackFullWidth gap={1}>
-          <Stack align="center" width="100%">
-            <Typography fontWeight={500} fontSize="16px">
-              {t("Sender Information")}
-            </Typography>
-          </Stack>
-          <CustomStackFullWidth alignItems="center" gap={1}>
-            <CustomStackFullWidth alignItems="center">
-              <CustomTextFieldWithFormik
-                required="true"
-                type="text"
-                label={t("Sender Name")}
-                touched={addAddressFormik.touched.senderName}
-                errors={addAddressFormik.errors.senderName}
-                fieldProps={addAddressFormik.getFieldProps("senderName")}
-                onChangeHandler={senderNameHandler}
-                value={addAddressFormik.values.senderName}
-                backgroundColor
-              />
-            </CustomStackFullWidth>
+      <Card
+        sx={{
+          padding: { xs: "16px", md: "20px" },
+          height: "100%",
+          backgroundColor: (theme) =>
+            theme.palette.mode === "dark"
+              ? theme.palette.background.default
+              : "#F7F7F7",
+          borderRadius: "16px",
+          boxShadow: "none",
+          overflow: "visible",
+        }}
+      >
+        <CustomStackFullWidth gap={{ xs: 1.5, md: 2.5 }}>
+          <Typography
+            fontWeight={700}
+            fontSize={{ xs: "16px", md: "20px" }}
+            letterSpacing="-0.6px"
+            color="neutral.1050"
+          >
+            {t("Sender Details")}
+          </Typography>
+
+          <CustomStackFullWidth gap={{ xs: 1.5, md: 3 }}>
+            <CustomTextFieldWithFormik
+              required="true"
+              type="text"
+              label={t("Sender Name")}
+              placeholder={t("Enter sender name")}
+              touched={addAddressFormik.touched.senderName}
+              errors={addAddressFormik.errors.senderName}
+              fieldProps={addAddressFormik.getFieldProps("senderName")}
+              onChangeHandler={senderNameHandler}
+              value={addAddressFormik.values.senderName}
+              backgroundColor
+            />
             <CustomTextFieldWithFormik
               required
               label={t("Email")}
+              placeholder={t("Enter email")}
               touched={addAddressFormik.touched.senderEmail}
               errors={addAddressFormik.errors.senderEmail}
               fieldProps={addAddressFormik.getFieldProps("senderEmail")}
@@ -111,118 +86,117 @@ const SenderInfoForm = ({
               value={addAddressFormik.values.senderEmail}
               backgroundColor
             />
-            <CustomStackFullWidth alignItems="center">
-              <CustomPhoneInput
-                value={addAddressFormik.values.senderPhone}
-                onHandleChange={senderPhoneHandler}
-                initCountry={configData?.country}
-                touched={addAddressFormik.touched.senderPhone}
-
-                errors={addAddressFormik.errors.senderPhone}
-                rtlChange="true"
-                lanDirection={lanDirection}
-                height="45px"
-                borderRadius="8px"
-                required
-              />
-
-            </CustomStackFullWidth>
-            <CustomStackFullWidth>
-              <CustomStackFullWidth
-                direction="row"
-                justifyContent="space-between"
-                alignItems="center"
-                pb="5px"
-              >
-                <Typography></Typography>
-                {getToken() ? (
-                  <Button onClick={() => setOpenSave(true)} sx={{ p: 0 }}>
-                    <Stack
-                      gap="5px"
-                      alignItems="center"
-                      justifyContent="center"
-                      direction="row"
-                    >
-                      <Typography
-                        color={theme.palette.primary.main}
-                        fontSize="12px"
-                      >
-                        {t("Save Address")}
-                      </Typography>
-                      <PinDropIcon
-                        sx={{ width: "20px", height: "20px" }}
-                        color="primary"
-                      />
-                    </Stack>
-                  </Button>
-                ) : (
-                  <Button onClick={handleOpen} sx={{ p: 0 }}>
-                    <Stack
-                      gap="5px"
-                      alignItems="center"
-                      justifyContent="center"
-                      direction="row"
-                    >
-                      <Typography
-                        color={theme.palette.primary.main}
-                        fontSize="12px"
-                      >
-                        {t("Set from map")}
-                      </Typography>
-                      <MapIcon
-                        sx={{ width: "20px", height: "20px" }}
-                        color="primary"
-                      />
-                    </Stack>
-                  </Button>
-                )}
-
-              </CustomStackFullWidth>
-              <CustomStackFullWidth sx={{ marginBottom: "1.5rem" }}>
-                <GetLocationFrom
-                  handleLocation={handleLocation}
-                  sender="true"
-                  fromparcel="true"
-                  formattedAddress={senderFormattedAddress}
-                  currentLocationValue={currentLocationValue}
-                  testLocation={testLocation}
-                  setCurrentLactionValue={setCurrentLactionValue}
-                  setOpen={setOpen}
-                />
-              </CustomStackFullWidth>
-            </CustomStackFullWidth>
-            <CustomTextFieldWithFormik
-              type="text"
-              label={t("Street number")}
-              touched={addAddressFormik.touched.road}
-              errors={addAddressFormik.errors.road}
-              fieldProps={addAddressFormik.getFieldProps("senderRoad")}
-              onChangeHandler={senderRoadHandler}
-              value={addAddressFormik.values.road}
-              backgroundColor
+            <CustomPhoneInput
+              value={addAddressFormik.values.senderPhone}
+              onHandleChange={senderPhoneHandler}
+              initCountry={configData?.country}
+              touched={addAddressFormik.touched.senderPhone}
+              errors={addAddressFormik.errors.senderPhone}
+              rtlChange="true"
+              lanDirection={lanDirection}
+              height="45px"
+              borderRadius="8px"
+              required
             />
-            <CustomStackFullWidth direction="row" spacing={1.3}>
-              <CustomTextFieldWithFormik
-                type="text"
-                label={t("House no.")}
-                touched={addAddressFormik.touched.house}
-                errors={addAddressFormik.errors.house}
-                fieldProps={addAddressFormik.getFieldProps("senderHouse")}
-                onChangeHandler={senderHouseHandler}
-                value={addAddressFormik.values.senderPhone}
-                backgroundColor
-              />
-              <CustomTextFieldWithFormik
-                type="text"
-                label={t("Floor no.")}
-                touched={addAddressFormik.touched.floor}
-                errors={addAddressFormik.errors.floor}
-                fieldProps={addAddressFormik.getFieldProps("senderFloor")}
-                onChangeHandler={senderFloorHandler}
-                value={addAddressFormik.values.floor}
-                backgroundColor
-              />
-            </CustomStackFullWidth>
+
+            <Box>
+              <Typography
+                fontWeight={400}
+                fontSize="16px"
+                letterSpacing="-0.48px"
+                mb={0.75}
+                color="neutral.700"
+              >
+                {t("Pickup Address")}
+              </Typography>
+              <Box
+                onClick={handleOpen}
+                sx={{
+                  cursor: "pointer",
+                  backgroundColor: theme.palette.background.paper,
+                  borderRadius: "8px",
+                  padding: "12px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 1.5,
+                  transition: "background-color 0.2s",
+                  "&:hover": {
+                    backgroundColor: alpha(theme.palette.primary.main, 0.06),
+                  },
+                }}
+              >
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  gap="12px"
+                  sx={{ flex: 1, minWidth: 0 }}
+                >
+                  <Box
+                    sx={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: "50%",
+                      backgroundColor: "background.secondary",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <i
+                      className="fi fi-rr-marker"
+                      style={{
+                        fontSize: "14px",
+                        lineHeight: 1,
+                        display: "flex",
+                        color: theme.palette.neutral[700],
+                      }}
+                    />
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography
+                      color="neutral.1050"
+                      fontWeight={700}
+                      fontSize="14px"
+                      lineHeight={1.1}
+                    >
+                      {t("Current Location")}
+                    </Typography>
+                    <Typography
+                      fontSize="14px"
+                      color="neutral.500"
+                      sx={{
+                        mt: 0.5,
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {hasLocation
+                        ? senderFormattedAddress
+                        : t("A location where you want to pick up the parcel")}
+                    </Typography>
+                  </Box>
+                </Stack>
+                <IconButton
+                  size="small"
+                  sx={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: "8px",
+                    color: theme.palette.primary.main,
+                    flexShrink: 0,
+                  }}
+                >
+                  <i
+                    className={hasLocation ? "fi fi-rr-pencil" : "fi fi-rr-add"}
+                    style={{ fontSize: "16px", lineHeight: 1, display: "flex" }}
+                  />
+                </IconButton>
+              </Box>
+            </Box>
           </CustomStackFullWidth>
         </CustomStackFullWidth>
       </Card>
@@ -236,39 +210,6 @@ const SenderInfoForm = ({
           handleLocation={handleLocation}
           toparcel="1"
         />
-      )}
-      {openSave && (
-        <CustomModal openModal={openSave} handleClose={() => setOpenSave(false)}>
-          <CustomStackFullWidth sx={{ minWidth: "350px", position: "relative" }}>
-            {/* Close Icon */}
-            <IconButton
-              onClick={() => setOpenSave(false)}
-              sx={{
-                position: "absolute",
-                top: -2,
-                right: 0,
-                zIndex: 2,
-                backgroundColor: (theme) => theme.palette.background.paper,
-                "&:hover": {
-                  backgroundColor: (theme) => theme.palette.action.hover,
-                },
-              }}
-            >
-              <CloseIcon sx={{ fontSize: "1rem" }} />
-            </IconButton>
-
-            <Card sx={{ padding: ".5rem" }} elevation={9}>
-              <SaveAddress
-                handleLocation={handleLocation}
-                configData={configData}
-                setSenderFormattedAddress={setSenderFormattedAddress}
-                setSenderLocation={setSenderLocation}
-                setSenderOptionalAddress={setSenderOptionalAddress}
-                sender="true"
-              />
-            </Card>
-          </CustomStackFullWidth>
-        </CustomModal>
       )}
     </CustomStackFullWidth>
   );

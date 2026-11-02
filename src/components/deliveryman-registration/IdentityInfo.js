@@ -56,7 +56,7 @@ const IdentityInfo = ({
   return (
     <>
       <CustomBoxFullWidth>
-        <Grid container columnSpacing={3}>
+        <Grid container spacing={3}>
           <Grid item xs={12} md={6} sx={{ minHeight: "5rem" }}>
             <CustomSelectWithFormik
               required
@@ -97,8 +97,7 @@ const IdentityInfo = ({
                 handleFieldChange("identity_number", value);
               }}
               value={deliveryManFormik.values.identity_number}
-              placeholder={t("Enter Identity Number")}
-              fontSize="12px"
+              placeholder={t("Enter Identity Number")}              
               startIcon={
                 <InputAdornment position="start">
                   <BadgeIcon
@@ -134,7 +133,7 @@ const IdentityInfo = ({
               {t("Identity Image")}
             </InputLabel>
             <Typography fontSize="10px">
-              ({t("JPG, JPEG, PNG ,WEBP Less Than 1MB Ratio 1:1")})
+            ({t("JPG, JPEG, PNG, WEBP Less Than 1MB Ratio 1:1, Max 6 Images")})
             </Typography>
           </Stack>
 

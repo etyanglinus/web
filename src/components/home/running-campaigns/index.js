@@ -1,51 +1,90 @@
+import { useEffect, useState } from "react";
+import { t } from "i18next";
+import { Skeleton, Typography, styled } from "@mui/material";
 import { Box } from "@mui/system";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import CustomSlider from "components/common/CustomSlider";
+import { handleProductRedirect } from "helper-functions/handleProductRedirect";
+
 import { useDispatch, useSelector } from "react-redux";
 import useGetItemCampaigns from "../../../api-manage/hooks/react-query/useGetItemCampaigns";
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
-import { getModuleId } from "helper-functions/getModuleId";
 import { ModuleTypes } from "helper-functions/moduleTypes";
 import { setCampaignItem } from "redux/slices/cart";
 import { setRunningCampaigns } from "redux/slices/storedData";
 import FoodDetailModal from "../../food-details/foodDetail-modal/FoodDetailModal";
-import H2 from "../../typographies/H2";
 import { HomeComponentsWrapper } from "../HomePageComponents";
-import SliderShimmer from "../SliderShimmer";
-import Grocery from "./Grocery";
-import Pharmacy from "./pharmacy";
+import NextImage from "components/NextImage";
+import { CustomBoxFullWidth } from "styled-components/CustomStyles.style";
+
+const ImageContainer = styled(Box)(({ theme }) => ({
+  position: "relative",
+  width: "100%",
+  borderRadius: "8px",
+  aspectRatio: "1 / 1",
+  overflow: "hidden",
+  cursor: "pointer",
+  "& img": {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+  },
+  "&:hover img": {
+    transform: "scale(1.04)",
+  },
+}));
+
+const SliderWrapper = styled(CustomBoxFullWidth)(({ theme }) => ({
+  "& .slick-list": {
+    overflowX: "hidden",
+    overflowY: "visible",
+    padding: "0",
+  },
+  "& .slick-track": {
+    marginLeft: 0,
+    marginRight: "auto",
+  },
+  "& .slick-slide": {
+    paddingRight: "16px",
+  },
+  "& .slick-slide:first-child": {
+    paddingLeft: 0,
+  },
+  [theme.breakpoints.down("sm")]: {
+    "& .slick-slide": {
+      paddingRight: "12px",
+    },
+  },
+}));
+
+// react-slick breakpoint:X meant "apply for width <= X" (descending); these
+// Swiper breakpoints mean "apply for width >= X" (ascending) - shifted by +1.
+const RUNNING_CAMPAIGNS_BREAKPOINTS = {
+  481: { slidesPerView: 2.8 },
+  601: { slidesPerView: 3.5 },
+  761: { slidesPerView: 4.5 },
+  901: { slidesPerView: 4.5, spaceBetween: 20 },
+  1025: { slidesPerView: 5.5, spaceBetween: 20 },
+  1451: { slidesPerView: 6, spaceBetween: 20 },
+};
 
 const RunningCampaigns = () => {
   const { configData } = useSelector((state) => state.configData);
   const [openModal, setOpenModal] = useState(false);
   const [campaignsData, setCampaignsData] = useState({});
   const imageBaseUrl = configData?.base_urls?.campaign_image_url;
-  const { data, refetch, isFetching, isLoading } = useGetItemCampaigns();
+  const { data, isFetching } = useGetItemCampaigns();
   const router = useRouter();
-  const { runningCampaigns } = useSelector((state) => state.storedData);
   const dispatch = useDispatch();
- 
+
   useEffect(() => {
     dispatch(setRunningCampaigns(data));
   }, [data]);
-  const handleClick = (product) => {
-    if (getCurrentModuleType() === "ecommerce") {
-      dispatch(setCampaignItem(product));
-      router.push(
-        {
-          pathname: "/product/[id]",
-          query: {
-            id: `${product?.slug ? product?.slug : product?.id}`,
-            module_id: `${getModuleId()}`,
-            product_type: "campaign",
-          },
-        },
-        undefined,
-        { shallow: true }
-      ).then(() => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
 
+  const handleClick = (product) => {
+    if (getCurrentModuleType() === ModuleTypes.ECOMMERCE) {
+      dispatch(setCampaignItem(product));
+      handleProductRedirect(product, router, "campaign");
     } else {
       setCampaignsData(product);
       setOpenModal(true);
@@ -55,66 +94,55 @@ const RunningCampaigns = () => {
     setOpenModal(false);
   };
 
-  const getModuleWiseView = () => {
-    switch (getCurrentModuleType()) {
-      case ModuleTypes.GROCERY:
-        return (
-          <Grocery
-            runningCampaigns={data}
-            handleClick={handleClick}
-            configData={configData}
-            isFetching={isFetching}
-          />
-        );
-      case ModuleTypes.PHARMACY:
-        return (
-          <Pharmacy
-            runningCampaigns={data}
-            handleClick={handleClick}
-            configData={configData}
-            isFetching={isFetching}
-          />
-        );
-      case ModuleTypes.ECOMMERCE:
-        return (
-          <Grocery
-            runningCampaigns={data}
-            handleClick={handleClick}
-            configData={configData}
-            isFetching={isFetching}
-          />
-        );
-      case ModuleTypes.FOOD:
-        return (
-          <Grocery
-            runningCampaigns={data}
-            handleClick={handleClick}
-            configData={configData}
-            isFetching={isFetching}
-          />
-        );
-    }
-  };
+  if (!isFetching && !data?.length) {
+    return null;
+  }
+
   return (
     <>
-      {isFetching ? (
-        <SliderShimmer />
-      ) : (
-        <>
-          {data?.length > 0 ? (
-            <HomeComponentsWrapper alignItems="flex-start">
-              {data?.length > 0 && (
-                <H2 text="Just For You" textAlign="left" component="h2" />
-              )}
-              <Box sx={{ width: "100%", mt: "1rem" }}>
-                {getModuleWiseView()}
-              </Box>
-            </HomeComponentsWrapper>
-          ) : (
-            ""
-          )}
-        </>
-      )}
+      <HomeComponentsWrapper sx={{ gap: "1rem" }}>
+        <SliderWrapper>
+          <CustomSlider
+            items={isFetching ? Array.from({ length: 6 }) : data}
+            renderItem={(item) =>
+              isFetching ? (
+                <ImageContainer>
+                  <Skeleton variant="rectangle" height="100%" width="100%" />
+                </ImageContainer>
+              ) : (
+                <ImageContainer onClick={() => handleClick(item)}>
+                  <NextImage
+                    src={item?.image_full_url}
+                    alt={item?.title}
+                    height={160}
+                    width={160}
+                    objectFit="cover"
+                  />
+                </ImageContainer>
+              )
+            }
+            arrowVariant="section"
+            title={
+              <Typography
+                sx={{
+                  fontSize: { xs: "18px", md: "24px" },
+                  fontWeight: 700,
+                  color: "neutral.1050",
+                  lineHeight: 1.1,
+                  letterSpacing: "-1.2px",
+                }}
+                component="h2"
+              >
+                {t("Just For You")}
+              </Typography>
+            }
+            allowOverflowY={false}
+            slidesPerView={2.2}
+            spaceBetween={16}
+            breakpoints={RUNNING_CAMPAIGNS_BREAKPOINTS}
+          />
+        </SliderWrapper>
+      </HomeComponentsWrapper>
       {openModal && (
         <FoodDetailModal
           product={campaignsData}

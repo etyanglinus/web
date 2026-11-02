@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
-import { alpha, Avatar, Badge, Stack, styled, Typography } from "@mui/material";
+import { alpha, Badge, Stack, styled, Typography } from "@mui/material";
 import { CustomStackFullWidth } from "styled-components/CustomStyles.style";
+import NextImage from "components/NextImage";
 
 import { useSelector } from "react-redux";
 import { useTheme } from "@mui/material/styles";
@@ -8,6 +9,7 @@ import { useTheme } from "@mui/material/styles";
 import useGetUserInfo from "../../api-manage/hooks/react-query/user/useGetUserInfo";
 import { CustomTypographyEllipsis } from "styled-components/CustomTypographies.style";
 import moment from "moment";
+import VerifiedStoreBadge from "components/cards/VerifiedStoreBadge";
 
 export const StyledBadge = styled(Badge)(({ theme }) => ({
 	"& .MuiBadge-badge": {
@@ -69,9 +71,7 @@ const InfoCard = ({
 		refetch();
 	}, []);
 	const userImage =
-		userList.receiver_type === "admin"
-			? adminImage
-			: userList?.receiver?.image;
+		userList.receiver_type === "admin" ? adminImage : userList?.receiver?.image;
 	const isSender = data?.userinfo?.id === userList.last_message.sender_id;
 	const isRead = !isLoading && !isSender && unRead > 0;
 	const language_direction = localStorage.getItem("direction");
@@ -81,11 +81,10 @@ const InfoCard = ({
 			direction="row"
 			spacing={2}
 			alignItems="center"
-			padding="10px 15px 10px 10px"
+			padding={{ xs: "10px 0px", md: "10px 15px 10px 10px" }}
 			sx={{
 				background:
-					selectedId === currentId &&
-					alpha(theme.palette.primary.main, 0.2),
+					selectedId === currentId && alpha(theme.palette.primary.main, 0.2),
 				borderRadius: "5px",
 			}}
 		>
@@ -93,11 +92,18 @@ const InfoCard = ({
 				overlap="circular"
 				anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
 
-				//variant="dot"
+			//variant="dot"
 			>
-				<Avatar
+				<NextImage
 					src={ChatImageUrl()}
-					sx={{ width: "48px", height: "48px" }}
+					alt={name || "chat"}
+					width={48}
+					height={48}
+					objectFit="contain"
+					borderRadius="50%"
+					sx={{
+						objectFit: "contain",
+					}}
 				/>
 			</StyledBadge>
 			<CustomStackFullWidth>
@@ -106,9 +112,17 @@ const InfoCard = ({
 					justifyContent="space-between"
 					marginRight={language_direction === "rtl" ? "1rem" : "0rem"}
 				>
-					<Typography fontSize="14px" fontWeight="500">
-						{receiver}
-					</Typography>
+					<Stack direction="row" alignItems="center">
+						<Typography fontSize="14px" fontWeight="500">
+							{receiver}
+						</Typography>
+						{userList?.receiver_type === "vendor" && (
+							<VerifiedStoreBadge
+								verified={userList?.receiver?.verified_seller}
+								fontSize="14px"
+							/>
+						)}
+					</Stack>
 					<Typography fontSize="12px">
 						{moment(messageTime).format("hh:mm A")}
 					</Typography>

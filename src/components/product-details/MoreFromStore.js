@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   CustomStackFullWidth,
   SliderCustom,
@@ -6,16 +6,23 @@ import {
 import { Grid, Typography } from "@mui/material";
 import { t } from "i18next";
 
-import Slider from "react-slick";
+import CustomSlider from "components/common/CustomSlider";
 
 import ProductCard from "../cards/ProductCard";
-import { SimilarProductSettings } from "./SimilarProductSettings";
 import horizontalCardShimmer from "../Shimmer/horizontalCardShimmer";
 import { Shimmer } from "../home/popular-items-nearby";
 import { Skeleton } from "@mui/material";
 import { ACTION } from "../store-details/middle-section/states";
 import useGetStoresCategoriesItem from "../../api-manage/hooks/react-query/stores-categories/useGetStoresCategoriesItem";
 import useGetMoreFromStores from "../../api-manage/hooks/react-query/product-details/useGetMoreFromStore";
+
+// react-slick breakpoint:X meant "apply for width <= X" (descending); these
+// Swiper breakpoints mean "apply for width >= X" (ascending) - shifted by +1.
+const MORE_FROM_STORE_BREAKPOINTS = {
+  651: { slidesPerView: 2 },
+  1001: { slidesPerView: 3 },
+  1301: { slidesPerView: 3.5 },
+};
 
 const MoreFromStore = ({ productDetails }) => {
   const [moreItem, setMoreItem] = useState([]);
@@ -43,7 +50,6 @@ const MoreFromStore = ({ productDetails }) => {
   useEffect(() => {
     refetch();
   }, []);
-  const SliderRef = useRef(null);
 
   return (
     <>
@@ -53,21 +59,21 @@ const MoreFromStore = ({ productDetails }) => {
             {t("More from Store")}
           </Typography>
           <SliderCustom>
-            <Slider ref={SliderRef} {...SimilarProductSettings}>
-              {moreItem?.products &&
-                moreItem?.products?.length > 0 &&
-                moreItem?.products?.map((item, index) => {
-                  return (
-                    <ProductCard
-                      key={index}
-                      item={item}
-                      cardheight="180px"
-                      horizontalcard="true"
-                      changed_bg="true"
-                    />
-                  );
-                })}
-            </Slider>
+            <CustomSlider
+              items={moreItem?.products ?? []}
+              renderItem={(item) => (
+                <ProductCard
+                  item={item}
+                  cardheight="180px"
+                  horizontalcard="true"
+                  changed_bg="true"
+                />
+              )}
+              arrowVariant="inline"
+              slidesPerView={1}
+              spaceBetween={16}
+              breakpoints={MORE_FROM_STORE_BREAKPOINTS}
+            />
             {isRefetching && [
               ...Array(3).map((item, index) => {
                 return (

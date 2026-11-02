@@ -3,8 +3,9 @@ import { useRouter } from "next/router";
 import { useSelector } from "react-redux";
 
 const AuthGuard = (props) => {
-  const { children, from } = props;
+  const { children, from, requireToken = false } = props;
   const router = useRouter();
+  const {orderId}=router.query;
   const [checked, setChecked] = useState(false);
   const { configData } = useSelector((state) => state.configData);
   useEffect(
@@ -14,9 +15,12 @@ const AuthGuard = (props) => {
       }
       const token = localStorage.getItem("token");
       const guest = localStorage.getItem("guest_id");
-      if (token || guest) {
-        setChecked(true);
-      } else if (guest && configData?.guest_checkout_status === 1) {
+      // requireToken=true → only a real JWT token grants access (e.g. profile page).
+      // Guest IDs must not bypass login-only routes.
+      const isAuthenticated = requireToken
+        ? !!token
+        : !!(token || guest);
+      if (isAuthenticated) {
         setChecked(true);
       } else {
         router.push(

@@ -17,6 +17,10 @@ export const checkTaxiModule = (value, moduleOption) => {
   const moduleObj = moduleOption?.find((item) => item.value === value);
   return moduleObj?.type === "rental";
 };
+export const checkServiceModule = (value, moduleOption) => {
+  const moduleObj = moduleOption?.find((item) => item.value === value);
+  return moduleObj?.type === "service";
+};
 const RestaurantDetailsForm = ({
   RestaurantJoinFormik,
   restaurantNameHandler,
@@ -87,8 +91,7 @@ const RestaurantDetailsForm = ({
                 }
                 touched={RestaurantJoinFormik.touched.restaurant_name}
                 errors={RestaurantJoinFormik.errors.restaurant_name}
-                onChangeHandler={restaurantNameHandler}
-                fontSize="12px"
+                onChangeHandler={restaurantNameHandler}                
                 startIcon={
                   <InputAdornment position="start">
                     <WorkIcon
@@ -105,7 +108,7 @@ const RestaurantDetailsForm = ({
                 }
               />
             </Stack>
-            <Stack>
+            <Stack mt="24px" pb={{ xs: "10px", md: "20px" }}>
               <CustomTextFieldWithFormik
                 labelColor={alpha(theme.palette.neutral[1000], 0.8)}
                 backgroundColor
@@ -120,8 +123,7 @@ const RestaurantDetailsForm = ({
                   selectedLanguage
                   ] || ""
                 } // Use the selected language value
-                onChangeHandler={restaurantAddressHandler}
-                fontSize="12px"
+                onChangeHandler={restaurantAddressHandler}                
                 startIcon={
                   <InputAdornment position="start">
                     <RoomIcon
@@ -217,7 +219,7 @@ const RestaurantDetailsForm = ({
                 </Grid>
               )}
 
-            <Grid item container xs={12} sm={12} md={12} spacing={{ xs: 0, md: 2 }}>
+            <Grid item container xs={12} sm={12} md={12} spacing={{ xs: 3, md: 2 }}>
               <Grid item md={4} xs={12}>
                 <CustomTextFieldWithFormik
                   labelColor={alpha(theme.palette.neutral[1000], 0.8)}
@@ -227,7 +229,12 @@ const RestaurantDetailsForm = ({
                       moduleOption
                     )
                       ? t("Min Pickup Time")
-                      : t("Min Delivery Time")
+                      : checkServiceModule(
+                        RestaurantJoinFormik?.values?.module_id,
+                        moduleOption
+                      )
+                        ? t("Min Service Time")
+                        : t("Min Delivery Time")
                   }
                   required="true"
                   type="number"
@@ -238,7 +245,12 @@ const RestaurantDetailsForm = ({
                       moduleOption
                     )
                       ? t("Minimum Pickup Time")
-                      : t("Minimum Delivery Time")
+                      : checkServiceModule(
+                        RestaurantJoinFormik?.values?.module_id,
+                        moduleOption
+                      )
+                        ? t("Minimum Service Time")
+                        : t("Minimum Delivery Time")
                   }
                   touched={RestaurantJoinFormik.touched.min_delivery_time}
                   errors={RestaurantJoinFormik.errors.min_delivery_time}
@@ -246,8 +258,7 @@ const RestaurantDetailsForm = ({
                     "min_delivery_time"
                   )}
                   onChangeHandler={minDeliveryTimeHandler}
-                  value={RestaurantJoinFormik.values.min_delivery_time}
-                  fontSize="12px"
+                  value={RestaurantJoinFormik.values.min_delivery_time}                  
                   startIcon={
                     <InputAdornment position="start">
                       <LocalShippingIcon
@@ -273,7 +284,12 @@ const RestaurantDetailsForm = ({
                       moduleOption
                     )
                       ? t("Max Pickup Time")
-                      : t("Max Delivery Time")
+                      : checkServiceModule(
+                        RestaurantJoinFormik?.values?.module_id,
+                        moduleOption
+                      )
+                        ? t("Max Service Time")
+                        : t("Max Delivery Time")
                   }
                   required="true"
                   type="number"
@@ -284,7 +300,12 @@ const RestaurantDetailsForm = ({
                       moduleOption
                     )
                       ? t("Maximum Pickup Time")
-                      : t("Maximum Delivery Time")
+                      : checkServiceModule(
+                        RestaurantJoinFormik?.values?.module_id,
+                        moduleOption
+                      )
+                        ? t("Maximum Service Time")
+                        : t("Maximum Delivery Time")
                   }
                   touched={RestaurantJoinFormik.touched.max_delivery_time}
                   errors={RestaurantJoinFormik.errors.max_delivery_time}
@@ -292,8 +313,7 @@ const RestaurantDetailsForm = ({
                     "max_delivery_time"
                   )}
                   onChangeHandler={maxDeliveryTimeHandler}
-                  value={RestaurantJoinFormik.values.max_delivery_time}
-                  fontSize="12px"
+                  value={RestaurantJoinFormik.values.max_delivery_time}                  
                   startIcon={
                     <InputAdornment position="start">
                       <LocalShippingIcon

@@ -6,7 +6,7 @@ import { styled } from "@mui/material/styles";
 import Tooltip, { tooltipClasses } from "@mui/material/Tooltip";
 import { Box } from "@mui/system";
 import { useTranslation } from "react-i18next";
-import Slider from "react-slick";
+import CustomSlider from "components/common/CustomSlider";
 import useGetCoupons from "../../../api-manage/hooks/react-query/useGetCoupons";
 import { getAmountWithSign } from "helper-functions/CardHelpers";
 import couponsBG from "../assets/coupons_bg.png";
@@ -21,13 +21,6 @@ const CustomBox = styled(Box)(({ theme }) => ({
   width: "fit-content",
   cursor: "pointer",
 }));
-const settings = {
-  dots: true,
-  infinite: false,
-  speed: 500,
-  slidesToShow: 1,
-  slidesToScroll: 1,
-};
 export const BootstrapTooltip = styled(({ className, ...props }) => (
   <Tooltip {...props} arrow classes={{ popper: className }} />
 ))(({ theme }) => ({
@@ -141,36 +134,40 @@ const Coupons = (props) => {
           sx={{
             background: (theme) => background(theme),
             backgroundSize: "cover", // Optional: Adjust the background size to cover the box
-            marginTop: "2rem",
             borderRadius: { xs: "0px", md: "5px" },
             padding: { xs: "25px", md: "15px" },
             minHeight: "135px",
-            "& .slick-dots": {
-              top: "95px",
-              "& li": {
-                backgroundColor: (theme) => theme.palette.neutral[500],
-                width: "5px",
-                height: "5px",
-                borderRadius: "50%",
-                "& button::before": {
-                  color: "transparent",
-                  borderRadius: "50%",
-                },
-              },
-              "& li.slick-active button::before": {
-                backgroundColor: (theme) => theme.palette.neutral[100],
-                width: "6px",
-                height: "6px",
-                borderRadius: "50%",
-              },
+            "& .swiper-pagination": {
+              position: "static",
+              marginTop: "12px",
+              display: "flex !important",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: "6px",
+            },
+            "& .swiper-pagination-bullet": {
+              backgroundColor: (theme) => theme.palette.neutral[500],
+              width: "5px",
+              height: "5px",
+              margin: "0 !important",
+              borderRadius: "50%",
+              opacity: 1,
+            },
+            "& .swiper-pagination-bullet-active": {
+              backgroundColor: (theme) => theme.palette.neutral[100],
+              width: "6px",
+              height: "6px",
             },
           }}
         >
-          <Slider {...settings}>
-            {data?.map((item, index) => {
-              return <CouponBox key={index} item={item} />;
-            })}
-          </Slider>
+          <CustomSlider
+            items={data ?? []}
+            renderItem={(item) => <CouponBox item={item} />}
+            arrowVariant="none"
+            allowOverflowY={false}
+            showDots
+            slidesPerView={1}
+          />
         </Box>
       )}
     </>

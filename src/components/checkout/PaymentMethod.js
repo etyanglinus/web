@@ -33,6 +33,8 @@ const PaymentMethod = ({
   failedOrderPlace,
   setOpen,
   setSelectedPaymentMethod,
+  onBeforeProceed,
+  onProceed,
 }) => {
   return (
     <CustomStackFullWidth spacing={2}>
@@ -52,10 +54,12 @@ const PaymentMethod = ({
           getParcelPayment={getParcelPayment}
           setOpen={setOpen}
           setSelectedPaymentMethod={setSelectedPaymentMethod}
+          payableAmount={payableAmount}
+          walletBalance={walletBalance}
         />
       ) : (
         <OtherModulePayment
-          failed={ failed}
+          failed={failed}
           changeAmount={changeAmount}
           setChangeAmount={setChangeAmount}
           setPaymentMethod={setPaymentMethod}
@@ -77,6 +81,8 @@ const PaymentMethod = ({
           customerData={customerData}
           payableAmount={payableAmount}
           failedOrderPlace={failedOrderPlace}
+          onBeforeProceed={onBeforeProceed}
+          onProceed={onProceed}
         />
       )}
     </CustomStackFullWidth>
