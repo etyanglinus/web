@@ -24,20 +24,6 @@ jobs:
           npm install --legacy-peer-deps
           npm run build
 
-      - name: Deploy to cPanel via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          script: |
-            cd /home/petrosup/fastadeliveries.co.ke/web
-            
-            # Clean old files except git and hidden configurations
-            find . -maxdepth 1 ! -name '.' ! -name '..' ! -name '.git' ! -name '.gitignore' -exec rm -rf {} +
-        
-            
       - name: Upload Built Assets to Server
         uses: appleboy/scp-action@master
         with:
@@ -45,6 +31,6 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          source: "dist/*,dist/.*"
+          source: "dist/*"
           target: "/home/petrosup/fastadeliveries.co.ke/web/"
           strip_components: 1
