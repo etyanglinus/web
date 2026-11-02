@@ -40,6 +40,7 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           source: "standalone-deploy.tar.gz"
           target: "/home/petrosup/fastadeliveries.co.ke/web/"
+          
 
       - name: Extract app and restart cPanel Node.js app
         uses: appleboy/ssh-action@v1.2.0
