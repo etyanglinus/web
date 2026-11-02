@@ -26,9 +26,16 @@ jobs:
           corepack prepare yarn@1.22.22 --activate
           yarn install --frozen-lockfile
           yarn build
+          
+          # Prepare standalone folder structure
           mkdir -p .next/standalone/.next/static
           cp -R .next/static/. .next/standalone/.next/static/
           cp -R public .next/standalone/
+          
+          # Explicitly include node_modules to supply helper modules like @swc/helpers
+          cp -R node_modules .next/standalone/
+          
+          # Package everything into the deploy archive
           tar -czf standalone-deploy.tar.gz -C .next/standalone .
 
       - name: Upload standalone app to cPanel via SCP
