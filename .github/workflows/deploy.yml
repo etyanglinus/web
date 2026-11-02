@@ -37,6 +37,7 @@ jobs:
             # Clean old files except git and hidden configurations
             find . -maxdepth 1 ! -name '.' ! -name '..' ! -name '.git' ! -name '.gitignore' -exec rm -rf {} +
         
+            
       - name: Upload Built Assets to Server
         uses: appleboy/scp-action@master
         with:
