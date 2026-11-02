@@ -1,4 +1,5 @@
 const nextConfig = {
+  output: 'standalone',
   reactStrictMode: true,
   // Hide Next.js dev-mode indicator (bottom-left "N" badge)
   devIndicators: {
