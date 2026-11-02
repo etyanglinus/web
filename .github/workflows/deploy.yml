@@ -24,7 +24,7 @@ jobs:
           npm install --legacy-peer-deps
           npm run build
 
-      - name: Upload Built Assets to Server
+      - name: Deploy Built Assets to cPanel via SCP
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
