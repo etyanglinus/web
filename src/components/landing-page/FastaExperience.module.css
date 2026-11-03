@@ -84,7 +84,7 @@
   position: relative;
   z-index: 2;
 }
-.address h2 {
+.page .address h2 {
   font-size: 16px;
   letter-spacing: -0.015em;
   margin: 0 12px 5px;
@@ -662,7 +662,7 @@
     padding: 18px 9px 12px;
     border-radius: 13px;
   }
-  .address h2 {
+  .page .address h2 {
     font-size: 14px;
     margin-inline: 10px;
   }
@@ -860,4 +860,38 @@
 :global(html[data-theme="dark"]) .heroDescription,
 :global(html[data-theme="dark"]) .kicker {
   color: #b5d9c3;
+}
+
+@media (max-width: 650px) {
+  .howGrid {
+    gap: 22px;
+    margin: 22px 0;
+  }
+  .howGrid > div {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    column-gap: 16px;
+    text-align: start;
+  }
+  .howGrid .stepArt {
+    grid-row: 1 / 4;
+    width: 52px;
+    height: 52px;
+    font-size: 27px;
+    margin: 0;
+  }
+  .howGrid .stepLabel,
+  .howGrid h3,
+  .howGrid p {
+    grid-column: 2;
+  }
+  .howGrid h3 {
+    margin: 6px 0;
+    font-size: 18px;
+  }
+  .howGrid p {
+    max-width: none;
+    margin: 0;
+    font-size: 12px;
+  }
 }
