@@ -1,5 +1,7 @@
 .footer {
   background: #212e28;
+  border-radius: 32px 32px 0 0;
+  overflow: hidden;
   color: #fff;
   margin-bottom: var(--footer-bottom-space, 0);
   font-family: inherit;
@@ -178,6 +180,9 @@
   }
 }
 @media (max-width: 600px) {
+  .footer {
+    border-radius: 20px 20px 0 0;
+  }
   .inner {
     padding: 34px 22px 22px;
   }
