@@ -1,119 +1,40 @@
-import {
-  Box,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from "@mui/material";
-import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
-import {
-  CustomBoxFullWidth,
-  CustomStackFullWidth,
-} from "styled-components/CustomStyles.style";
-import CustomContainer from "../../container";
-import HeroLocationForm from "./HeroLocationForm";
+import { useTheme } from "@mui/material/styles";
+import { useTranslation } from "react-i18next";
 import HeroTitleSection from "./HeroTitleSection";
 import DollarSignHighlighter from "components/DollarSignHighlighter";
+import DeliveryIllustration from "./DeliveryIllustration";
+import styles from "../FastaLanding.module.css";
 
-const DynamicModuleSelection = dynamic(() =>
-  import("./module-selection/ModuleSelectionRaw")
-);
 const HeroSection = ({ landingPageDataheroSection }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
-  const isXSmall = useMediaQuery(theme.breakpoints.down("sm"));
-  const [currentLocation, setCurrentLocation] = useState(null);
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setCurrentLocation(window.localStorage.getItem("location"));
-    }
-  }, []);
-
-
-  const calculateTopMargin = () => {
-    if (currentLocation) {
-      return {
-        xs: "4rem",
-        sm: "5rem",
-        md: "7rem",
-      };
-    } else {
-      return {
-        xs: "4rem",
-        sm: "5rem",
-        md: "5rem",
-      };
-    }
-  };
-
   return (
-    <CustomContainer>
-      <CustomBoxFullWidth
-        sx={{
-          marginTop: calculateTopMargin(),
-          borderRadius: "20px",
-          position: "relative",
-          background: `linear-gradient(1.02deg, rgba(3, 157, 85, 0.1) -12.87%, rgba(3, 157, 85, 0.02) 99.13%)`,
-          padding: { xs: "13px", md: "30px" },
-          display: "flex",
-          alignItems: {
-            xs: "flex-start",
-            sm: "center"
-          },
-        }}
-      >
-        <Box sx={{ position: "relative", zIndex: 1, width: "100%" }}>
-          <CustomStackFullWidth spacing={2} sx={{ mb: 3, maxWidth: "780px", margin: "0 auto" }}>
-
-            <Typography
-              variant="h1"
-              sx={{
-                fontSize: { xs: "18px", sm: "30px", md: "40px" },
-                fontWeight: "bold",
-                color: theme.palette.neutral[1000],
-                textAlign: "center",
-                lineHeight: 1.2,
-              }}
-            >
-              <DollarSignHighlighter theme={theme} text={landingPageDataheroSection?.header_title} />
-
-            </Typography>
-            <Typography
-              variant="h2"
-              sx={{
-                fontSize: { xs: "12px", sm: "16px" },
-                fontWeight: "400",
-                color: theme.palette.text.secondary,
-                textAlign: "center",
-                lineHeight: 1.2,
-              }}
-            >
-              {landingPageDataheroSection?.header_sub_title}
-            </Typography>
-          </CustomStackFullWidth>
-          <Box sx={{ marginTop: { xs: "1rem", md: "1.5rem" }, width: "100%", marginInline: "auto" }}>
-            <Typography
-              variant="h2"
-              sx={{
-                fontSize: { xs: "14px", sm: "16px", md: "20px" },
-                fontWeight: "500",
-                color: theme.palette.neutral[500],
-                textAlign: "center",
-                lineHeight: 1.2,
-                marginBottom: { xs: "10px", md: "1rem" },
-
-              }}
-            >
-              {landingPageDataheroSection?.header_tag_line}
-            </Typography>
-            <HeroTitleSection
-              landingPageData={landingPageDataheroSection}
-            />
-          </Box>
-        </Box>
-      </CustomBoxFullWidth>
-
-    </CustomContainer>
+    <section className={styles.hero} aria-labelledby="fasta-hero-title">
+      <div className={styles.heroInner}>
+        <div className={styles.heroCopy}>
+          <p className={styles.eyebrow}><span className={styles.statusDot} />{t("YOUR NEIGHBOURHOOD. DELIVERED.")}</p>
+          <h1 id="fasta-hero-title" className={styles.title}>
+            {landingPageDataheroSection?.header_title ? <DollarSignHighlighter theme={theme} text={landingPageDataheroSection.header_title} /> : <>{t("A little less running.")}<br /><span>{t("A lot more living.")}</span></>}
+          </h1>
+          <p className={styles.description}>{landingPageDataheroSection?.header_sub_title || t("Your favourite meals, everyday essentials and local finds. Bring your neighbourhood to your doorstep with Fasta.")}</p>
+          <a className={styles.primaryLink} href="#fasta-discover">{t("Find what you need")} <span aria-hidden="true">↗</span></a>
+          <div className={styles.heroNote}><span aria-hidden="true">✳</span> {t("More time for the things you love.")}</div>
+        </div>
+        <div className={styles.heroArt} aria-hidden="true">
+          <DeliveryIllustration />
+          <div className={styles.artLabel}><span className={styles.labelIcon}>↗</span><div><strong>{t("A local connection.")}</strong><span>{t("From their door to yours.")}</span></div></div>
+          <span className={styles.artStamp}>FASTA<br />{t("ON THE MOVE")}</span>
+        </div>
+      </div>
+      <div id="fasta-discover" className={styles.discover}>
+        <div className={styles.discoverHeading}>
+          <span className={styles.stepNumber}>01 /</span>
+          <div><h2>{t("What’s happening around you?")}</h2><p>{landingPageDataheroSection?.header_tag_line || t("Set your delivery address to discover available services.")}</p></div>
+          <span className={styles.discoverArrow} aria-hidden="true">↘</span>
+        </div>
+        <HeroTitleSection landingPageData={landingPageDataheroSection} />
+      </div>
+    </section>
   );
 };
-
 export default HeroSection;
