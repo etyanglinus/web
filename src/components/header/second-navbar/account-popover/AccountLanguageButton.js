@@ -109,6 +109,8 @@ const AccountLanguageButton = () => {
 
   const isMenuOpen = Boolean(anchorEl);
 
+  if (languageList.length < 2) return null;
+
   return (
     <>
       <Box

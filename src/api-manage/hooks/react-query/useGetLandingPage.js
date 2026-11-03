@@ -29,7 +29,9 @@ export default function useGetLandingPage() {
   const isRehydrated = useIsRehydrated();
   const cached = useSelector((state) => state.storedData?.landingPage);
 
-  const cachedData = cached?.data ?? undefined;
+  const localeWasMigrated =
+    typeof window !== "undefined" && window.__fastaLanguageMigrated === true;
+  const cachedData = localeWasMigrated ? undefined : cached?.data ?? undefined;
   const cachedIsStale =
     !cachedData ||
     !cached?.fetchedAt ||
@@ -42,7 +44,11 @@ export default function useGetLandingPage() {
     staleTime: STALE_TIME,
     cacheTime: 1000 * 60 * 30,
     onSuccess: (data) => {
-      if (data) dispatch(setLandingPage({ data, fetchedAt: Date.now() }));
+      if (data) {
+        dispatch(setLandingPage({ data, fetchedAt: Date.now() }));
+        if (typeof window !== "undefined")
+          window.__fastaLanguageMigrated = false;
+      }
     },
   });
 

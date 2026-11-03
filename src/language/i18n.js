@@ -2,7 +2,7 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { english } from "./en";
 import { bengali } from "./bn";
-import { arabic } from "./ar";
+import { migrateRemovedArabic } from "./localePolicy";
 import { spain } from "./es";
 
 // the translations
@@ -18,10 +18,20 @@ const resources = {
   bn: {
     translation: bengali,
   },
-  ar: {
-    translation: arabic,
-  },
 };
+
+if (typeof window !== "undefined") {
+  try {
+    if (migrateRemovedArabic(window.localStorage, document.cookie)) {
+      window.__fastaLanguageMigrated = true;
+      document.cookie =
+        "languageSetting=en; path=/; max-age=31536000; samesite=lax";
+      document.documentElement.dir = "ltr";
+    }
+  } catch {
+    /* Storage may be unavailable in a restricted browser session. */
+  }
+}
 
 i18n
   .use(initReactI18next) // passes i18n down to react-i18next
@@ -29,6 +39,7 @@ i18n
     resources,
     lng: "en", // language to use, more information here: https://www.i18next.com/overview/configuration-options#languages-namespaces-resources
     fallbackLng: "en",
+    supportedLngs: ["en", "es", "bn"],
     interpolation: {
       escapeValue: false, // react already safes from xss
     },

@@ -1,3 +1,4 @@
+import { normalizeLanguage } from "../language/localePolicy";
 import { fetchPageMetadata } from "utils/fetchPageMetaData";
 import { getApiContent } from "api-manage/getApiContent";
 
@@ -19,10 +20,13 @@ export const getCommonServerSideProps = async (
   pageId = null
 ) => {
   const { req, res } = context;
-  const language = req.cookies.languageSetting;
+  const language = normalizeLanguage(req.cookies.languageSetting) || "en";
 
   const configRes = await fetch(
-    `${(process.env.NEXT_PUBLIC_BASE_URL || "").replace(/\/+$/, "")}/api/v1/config`,
+    `${(process.env.NEXT_PUBLIC_BASE_URL || "").replace(
+      /\/+$/,
+      ""
+    )}/api/v1/config`,
     {
       method: "GET",
       headers: {

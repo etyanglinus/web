@@ -10,17 +10,19 @@ import useGetLandingPage from "../src/api-manage/hooks/react-query/useGetLanding
 import { RTL } from "components/rtl";
 import { checkMaintenanceMode } from "../src/utils/serverSidePropsHelper";
 import { getApiContent } from "../src/api-manage/getApiContent";
+import { normalizeLanguage } from "../src/language/localePolicy";
 
 const Root = (props) => {
   const { configData, landingPageData } = props;
   const { data } = useGetLandingPage();
+  const resolvedLandingPageData = data || landingPageData;
   const dispatch = useDispatch();
   // getServerSideProps already fetched /api/v1/config and handed it to us as
   // `configData`. Refetching it client-side duplicated a 169-key payload on
   // every landing page load for data we already had, so seed redux from the
   // SSR props instead.
   useEffect(() => {
-    dispatch(setLandingPageData(data));
+    dispatch(setLandingPageData(resolvedLandingPageData));
     if (configData) {
       if (Array.isArray(configData) && configData.length === 0) {
         Router.push("/404");
@@ -28,7 +30,7 @@ const Root = (props) => {
         dispatch(setConfigData(configData));
       }
     }
-  }, [configData, data, dispatch]);
+  }, [configData, resolvedLandingPageData, dispatch]);
   let lanDirection = undefined;
 
   if (typeof window !== "undefined") {
@@ -48,9 +50,15 @@ const Root = (props) => {
           landingPageData?.meta_description || configData?.meta_description
         }
       />
-      {data && (
-        <LandingLayout configData={configData} landingPageData={data}>
-          <LandingPage configData={configData} landingPageData={data} />
+      {resolvedLandingPageData && (
+        <LandingLayout
+          configData={configData}
+          landingPageData={resolvedLandingPageData}
+        >
+          <LandingPage
+            configData={configData}
+            landingPageData={resolvedLandingPageData}
+          />
         </LandingLayout>
       )}
     </>
@@ -59,10 +67,13 @@ const Root = (props) => {
 export default Root;
 export const getServerSideProps = async (context) => {
   const { req, res } = context;
-  const language = req.cookies.languageSetting;
+  const language = normalizeLanguage(req.cookies.languageSetting) || "en";
 
   const configRes = await fetch(
-    `${(process.env.NEXT_PUBLIC_BASE_URL || "").replace(/\/+$/, "")}/api/v1/config`,
+    `${(process.env.NEXT_PUBLIC_BASE_URL || "").replace(
+      /\/+$/,
+      ""
+    )}/api/v1/config`,
     {
       method: "GET",
       headers: {
@@ -70,7 +81,7 @@ export const getServerSideProps = async (context) => {
         "X-localization": language,
         origin: process.env.NEXT_CLIENT_HOST_URL,
       },
-    },
+    }
   );
   const config = getApiContent(await configRes.json());
 
@@ -84,7 +95,10 @@ export const getServerSideProps = async (context) => {
   }
 
   const landingPageRes = await fetch(
-    `${(process.env.NEXT_PUBLIC_BASE_URL || "").replace(/\/+$/, "")}/api/v1/react-landing-page`,
+    `${(process.env.NEXT_PUBLIC_BASE_URL || "").replace(
+      /\/+$/,
+      ""
+    )}/api/v1/react-landing-page`,
     {
       method: "GET",
       headers: {
@@ -92,13 +106,13 @@ export const getServerSideProps = async (context) => {
         "X-localization": language,
         origin: process.env.NEXT_CLIENT_HOST_URL,
       },
-    },
+    }
   );
   const landingPageData = getApiContent(await landingPageRes.json()) ?? null;
   // Set cache control headers for 1 hour (3600 seconds)
   res.setHeader(
     "Cache-Control",
-    "public, s-maxage=3600, stale-while-revalidate",
+    "public, s-maxage=3600, stale-while-revalidate"
   );
 
   return {

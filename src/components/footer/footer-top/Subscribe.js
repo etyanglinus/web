@@ -57,6 +57,7 @@ const Subscribe = () => {
         value={emailAddress}
         type="email"
         name="email"
+        inputProps={{ "aria-label": t("Email address for newsletter") }}
         placeholder={t("Enter your email address")}
         onChange={(e) => setEmailAddress(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
@@ -65,7 +66,9 @@ const Subscribe = () => {
         variant="contained"
         onClick={handleSubmit}
         disabled={isLoading}
-        startIcon={isLoading ? <CircularProgress size={14} color="inherit" /> : undefined}
+        startIcon={
+          isLoading ? <CircularProgress size={14} color="inherit" /> : undefined
+        }
         sx={{
           height: "36px",
           px: "16px",

@@ -146,6 +146,8 @@ const CustomLanguage = ({
     handleCloseModal();
   };
 
+  if (languageList.length < 2) return null;
+
   return (
     <>
       <TopBarButton
