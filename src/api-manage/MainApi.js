@@ -1,11 +1,12 @@
 import axios from "axios";
+import { normalizeLanguage } from "../language/localePolicy";
 // NEXT_PUBLIC_BASE_URL may or may not carry a trailing slash. Axios normalises
 // that when joining baseURL + path, but every server-side `${baseUrl}${path}`
 // template does not — it yields `host//api/v1/...`, which the API answers with
 // a 404. Strip it once here so both styles are safe.
 export const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || "").replace(
   /\/+$/,
-  "",
+  ""
 );
 const MainApi = axios.create({
   baseURL: baseUrl,
@@ -21,7 +22,9 @@ MainApi.interceptors.request.use(function (config) {
   if (typeof window !== "undefined") {
     zoneid = localStorage.getItem("zoneid");
     token = localStorage.getItem("token");
-    language = JSON.parse(localStorage.getItem("language-setting"));
+    language = normalizeLanguage(
+      JSON.parse(localStorage.getItem("language-setting"))
+    );
     currentLocation = JSON.parse(localStorage.getItem("currentLatLng"));
     moduleid = JSON.parse(localStorage.getItem("module"))?.id;
   }
@@ -67,7 +70,7 @@ MainApi.interceptors.response.use(
     //   window.location.href = "/";
     // }
     return Promise.reject(error);
-  },
+  }
 );
 
 export default MainApi;

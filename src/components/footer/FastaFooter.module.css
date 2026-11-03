@@ -1,0 +1,248 @@
+.footer {
+  background: #212e28;
+  color: #fff;
+  margin-bottom: var(--footer-bottom-space, 0);
+  font-family: inherit;
+}
+.footer * {
+  box-sizing: border-box;
+}
+.inner {
+  max-width: 1180px;
+  padding: 52px 24px 22px;
+  margin: auto;
+}
+.grid {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr 1fr 1.1fr;
+  gap: 44px;
+}
+.footer a {
+  text-decoration: none;
+}
+.footer a,
+.footer button {
+  color: #d3ddd6;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.footer a:hover,
+.footer button:hover {
+  color: #69e7a3;
+}
+.footer a:focus-visible,
+.footer button:focus-visible,
+.footer summary:focus-visible {
+  outline: 3px solid #039d55;
+  outline-offset: 5px;
+}
+.brand > a {
+  display: inline-block;
+  background: #fff;
+  border-radius: 9px;
+  padding: 7px 12px;
+}
+.brand img {
+  display: block;
+  width: 154px;
+  height: 48px;
+  object-fit: contain;
+}
+.brand strong {
+  color: #039d55;
+  font-size: 24px;
+}
+.brand p {
+  font-size: 12px;
+  line-height: 1.85;
+  color: #aabbaf;
+  margin: 18px 0;
+  max-width: 270px;
+}
+.grid h2 {
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 3px 0 20px;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+.grid nav > a,
+.help > a,
+.help > button {
+  display: block;
+  margin-bottom: 11px;
+}
+.help > button {
+  background: none;
+  border: 0;
+  padding: 0;
+  text-align: start;
+  font-family: inherit;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.help > a {
+  overflow-wrap: anywhere;
+}
+.socials {
+  display: flex;
+  gap: 13px;
+  flex-wrap: wrap;
+}
+.socials a {
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+}
+.socials svg {
+  width: 17px;
+  height: 17px;
+}
+.newsletter {
+  border-top: 1px solid #ffffff20;
+  border-bottom: 1px solid #ffffff20;
+  margin-top: 28px;
+}
+.newsletter summary {
+  font-size: 12px;
+  color: #d3ddd6;
+  padding: 16px 0;
+  display: flex;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+}
+.newsletter summary::-webkit-details-marker {
+  display: none;
+}
+.newsletter summary > span {
+  font-size: 19px;
+  transition: transform 0.2s;
+}
+.newsletter[open] summary > span {
+  transform: rotate(45deg);
+}
+.newsletter > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 35px;
+  align-items: center;
+  padding: 3px 0 22px;
+}
+.newsletter p {
+  font-size: 12px;
+  color: #aabbaf;
+  line-height: 1.8;
+  margin: 0;
+}
+.newsletter :global(.MuiButton-root) {
+  background: #039d55;
+  color: #fff;
+  text-transform: none;
+}
+.newsletter :global(.MuiInputBase-root) {
+  color: #212e28;
+}
+.bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 25px;
+  padding-top: 21px;
+}
+.bottom p {
+  font-size: 10px;
+  color: #aabbaf;
+  margin: 0;
+  line-height: 1.7;
+}
+.bottom nav {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.bottom a {
+  font-size: 10px;
+  color: #aabbaf;
+}
+@media (min-width: 900px) {
+  .footer {
+    margin-bottom: 0;
+  }
+}
+@media (max-width: 950px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 30px 40px;
+  }
+}
+@media (max-width: 600px) {
+  .inner {
+    padding: 34px 22px 22px;
+  }
+  .grid {
+    gap: 28px 22px;
+  }
+  .brand {
+    grid-column: 1/-1;
+  }
+  .brand p {
+    max-width: 100%;
+    font-size: 11px;
+    margin: 14px 0;
+  }
+  .brand img {
+    width: 140px;
+    height: 43px;
+  }
+  .grid h2 {
+    font-size: 13px;
+    margin-bottom: 15px;
+  }
+  .footer a,
+  .footer button {
+    font-size: 11px;
+  }
+  .help {
+    grid-column: 1/-1;
+    border-top: 1px solid #ffffff15;
+    padding-top: 22px;
+  }
+  .help > a,
+  .help > button {
+    display: inline-block;
+    margin-inline-end: 20px;
+  }
+  .newsletter {
+    margin-top: 18px;
+  }
+  .newsletter > div {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  .newsletter :global(.MuiBox-root) {
+    gap: 8px;
+    padding-inline-start: 12px;
+  }
+  .newsletter :global(.MuiButton-root) {
+    font-size: 11px;
+    padding-inline: 10px;
+  }
+  .newsletter :global(.MuiInputBase-root) {
+    font-size: 12px;
+  }
+  .bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  .bottom nav {
+    gap: 10px 20px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .newsletter summary > span {
+    transition: none;
+  }
+}
