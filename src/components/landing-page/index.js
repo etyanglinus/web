@@ -20,6 +20,7 @@ import RiderAppDownload from "./rider-download-section";
 import { GallerySection } from "./gallery-section";
 import ImageTitleSection from "./ImageTitleSection";
 import FaqTabSection from "./FaqTabSection";
+import FastaHowItWorks from "./FastaHowItWorks";
 
 const MapModal = dynamic(() => import("../Map/MapModal"));
 
@@ -74,6 +75,7 @@ const LandingPage = ({ configData, landingPageData }) => {
     <>
       <PushNotificationLayout>
         <HeroSection landingPageDataheroSection={landingPageData?.hero_section} />
+        <FastaHowItWorks />
         {landingPageData?.trust_section?.trust_section_status === 1 ? (
           <StatsSection trustSectionData={landingPageData?.trust_section} />
         ) : null}
