@@ -339,7 +339,17 @@ const ItemCheckout = (props) => {
   //order post api
   const { mutate: orderMutation, isLoading: orderLoading } = useMutation(
     "order-place",
-    OrderApi.placeOrder,
+    (order) => {
+      const slug = router.query.brandsite;
+      if (page !== "cart" || typeof slug !== "string") {
+        return OrderApi.placeOrder(order);
+      }
+      if (order instanceof FormData) {
+        order.set("brandsite_slug", slug);
+        return OrderApi.placeOrder(order);
+      }
+      return OrderApi.placeOrder({ ...order, brandsite_slug: slug });
+    },
   );
   const userOnSuccessHandler = (res) => {};
   const { isLoading: customerLoading, data: customerData } = useQuery(

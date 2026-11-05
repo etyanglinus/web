@@ -1,0 +1,123 @@
+
+        .editor { min-height: 100vh; background: #f0f0f1; color: #1e1e1e; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 13px; }
+        .editor :global(*) { box-sizing: border-box; }
+        .editor :global(button), .editor :global(input), .editor :global(select), .editor :global(textarea) { font: inherit; }
+        .editor :global(button) { cursor: pointer; border: 0; background: transparent; color: inherit; border-radius: 3px; }
+        .editor :global(button:disabled) { opacity: .4; cursor: not-allowed; }
+        .editor :global(button:focus-visible), .editor :global(a:focus-visible), .editor :global(input:focus-visible), .editor :global(select:focus-visible), .editor :global(textarea:focus-visible) { outline: 2px solid #039d55; outline-offset: 2px; }
+        .editor :global(.toolbar) { min-height: 72px; display: flex; align-items: center; gap: 18px; padding: 12px 18px 12px 0; background: white; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 3; }
+        .editor :global(.brand) { display: grid; place-content: center; position: relative; align-self: stretch; min-width: 72px; margin: -12px 0; background: #083c2b; color: #fff; font-size: 30px; font-weight: 800; text-decoration: none; }
+        .editor :global(.brand span) { position: absolute; color: #6be5a9; right: 16px; bottom: 15px; font-size: 20px; }
+        .editor :global(.tools), .editor :global(.actions) { display: flex; align-items: center; gap: 5px; }
+        .editor :global(.actions) { margin-left: auto; gap: 12px; }
+        .editor :global(.square) { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .editor :global(.square:hover), .editor :global(.square.active) { background: #ebf5ef; color: #017d43; }
+        .editor :global(.square.add) { background: #039d55; color: white; margin-right: 8px; }
+        .editor :global(.separator) { width: 1px; height: 24px; background: #ddd; margin: 0 6px; }
+        .editor :global(.document) { display: flex; flex-direction: column; min-width: 120px; gap: 2px; }
+        .editor :global(.document h1) { font-size: 14px; font-weight: 600; margin: 0; }
+        .editor :global(.document-type), .editor :global(.save-state) { color: #757575; font-size: 10px; }
+        .editor :global(.document-type) { text-transform: uppercase; letter-spacing: .08em; }
+        .editor :global(.save-state) { display: none; }
+        .editor :global(.viewport) { display: flex; align-items: center; gap: 5px; margin: 0; }
+        .editor :global(.viewport select) { width: 88px; border: 0; background: white; }
+        .editor :global(.primary) { padding: 10px 20px; background: #039d55; color: white; font-weight: 600; min-height: 38px; }
+        .editor :global(.text-button) { padding: 10px 4px; color: #017d43; white-space: nowrap; }
+        .editor :global(.live-link) { color: #1e1e1e; text-decoration: none; white-space: nowrap; }
+        .editor :global(.support-banner) { display: flex; flex-wrap: wrap; gap: 12px; background: #fff4d9; padding: 12px 24px; border-bottom: 1px solid #e4cf94; }
+        .editor :global(.notices p) { margin: 0; padding: 10px 24px; background: #fff; border-bottom: 1px solid #ddd; }
+        .editor :global(.notices .success) { color: #067340; border-left: 4px solid #039d55; }.editor :global(.notices .error) { color: #a72323; border-left: 4px solid #d63638; }
+        .editor :global(.workspace) { display: grid; min-height: calc(100vh - 72px); grid-template-columns: minmax(0,1fr); align-items: stretch; }
+        .editor :global(.workspace.has-left) { grid-template-columns: 248px minmax(0,1fr); }.editor :global(.workspace.has-right) { grid-template-columns: minmax(0,1fr) 292px; }.editor :global(.workspace.has-left.has-right) { grid-template-columns: 248px minmax(0,1fr) 292px; }
+        .editor :global(.outline), .editor :global(.inspector) { background: white; min-width: 0; }.editor :global(.outline) { border-right: 1px solid #ddd; }.editor :global(.inspector) { border-left: 1px solid #ddd; }
+        .editor :global(.panel-heading) { height: 58px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #eee; }
+        .editor :global(h2) { font-size: 14px; font-weight: 600; margin: 0; }.editor :global(h3) { font-size: 12px; font-weight: 600; margin: 0 0 18px; }
+        .editor :global(.page-label) { display: flex; align-items: center; gap: 10px; padding: 20px 16px 10px; font-weight: 500; }.editor :global(.count) { margin-left: auto; color: #757575; }
+        .editor :global(ol) { list-style: none; padding: 0 8px; margin: 0; }.editor :global(li) { display: flex; align-items: center; border-radius: 3px; margin-bottom: 3px; padding-right: 5px; }.editor :global(li.selected) { background: #e7f3ec; color: #00733d; }
+        .editor :global(.block-name) { min-width: 0; display: flex; flex: 1; align-items: center; gap: 9px; padding: 13px 10px; text-align: left; font-size: 12px; }
+        .editor :global(.move-buttons) { display: flex; }.editor :global(.move-buttons button) { padding: 3px 5px; }
+        .editor :global(.panel-note) { margin: 20px 16px; font-size: 11px; line-height: 1.7; color: #757575; }
+        .editor :global(.add-another) { margin: 16px; display: flex; align-items: center; gap: 8px; color: #017d43; }
+        .editor :global(.search) { margin: 18px 16px; display: flex; border: 1px solid #949494; padding: 8px; align-items: center; gap: 6px; }.editor :global(.search input) { width: 100%; border: 0; min-width: 0; }
+        .editor :global(.eyebrow) { color: #757575; font-size: 10px; letter-spacing: .08em; margin: 0 0 14px; }.editor :global(.outline .eyebrow) { margin: 24px 16px 12px; }
+        .editor :global(.block-library) { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 12px; }.editor :global(.block-tile) { padding: 20px 5px; display: flex; flex-direction: column; align-items: center; gap: 10px; border: 1px solid #ddd; }.editor :global(.block-tile strong) { font-size: 11px; }.editor :global(.block-tile span) { font-size: 10px; color: #757575; }
+        .editor :global(.canvas-area) { min-width: 0; padding: 0 28px 30px; }.editor :global(.canvas-top),.editor :global(.canvas-bottom) { display: flex; justify-content: space-between; gap: 10px; padding: 20px 0; max-width: 1100px; margin: auto; color: #757575; font-size: 10px; letter-spacing: .03em; }
+        .editor :global(.canvas) { width: 100%; margin: 0 auto; background: white; min-height: 620px; box-shadow: 0 1px 5px #00000012; transition: max-width .25s ease; }.editor :global(.canvas-bottom) { font-size: 11px; }
+        .editor :global(.inspector-tabs) { display: flex; border-bottom: 1px solid #ddd; min-height: 58px; align-items: center; padding: 0 12px; gap: 4px; }.editor :global(.inspector-tabs > button:not(.square)) { align-self: stretch; padding: 0 14px; border-bottom: 3px solid transparent; border-radius: 0; }.editor :global(.inspector-tabs .current) { border-bottom-color: #039d55 !important; font-weight: 600; }.editor :global(.inspector-tabs .square) { margin-left: auto; }
+        .editor :global(fieldset) { border: 0; padding: 0; margin: 0; min-width: 0; }.editor :global(.property-group) { padding: 22px 20px; border-bottom: 1px solid #e0e0e0; }.editor :global(.property-group h2) { margin: 0 0 18px; }
+        .editor :global(label) { display: block; font-size: 12px; font-weight: 500; margin: 14px 0 6px; }.editor :global(input:not([type=color])),.editor :global(select),.editor :global(textarea) { display: block; width: 100%; padding: 9px 10px; border: 1px solid #949494; border-radius: 3px; background: white; color: #1e1e1e; margin-top: 8px; font-size: 12px; }.editor :global(textarea) { resize: vertical; }
+        .editor :global(.help) { font-size: 11px; line-height: 1.7; color: #757575; margin: 10px 0 0; }.editor :global(.color-field) { display: flex; align-items: center; gap: 12px; margin-top: 10px; font-size: 11px; font-weight: 400; }.editor :global(.color-field input) { width: 36px; height: 36px; border: 0; padding: 0; border-radius: 50%; background: transparent; }
+        .editor :global(details summary) { cursor: pointer; font-weight: 600; font-size: 12px; }.editor :global(.file-label) { font-size: 11px; }.editor :global(.file-label input) { font-size: 10px; padding: 8px 4px; }.editor :global(.secondary) { border: 1px solid #aaa; padding: 9px 12px; background: white; }.editor :global(.full) { width: 100%; margin-top: 12px; }.editor :global(.download) { display: block; color: #017d43; font-size: 11px; margin-top: 16px; }
+        .editor :global(.block-description) { display: flex; align-items: flex-start; gap: 12px; }.editor :global(.block-description h2) { margin: 0; }.editor :global(.block-description .help) { margin-top: 7px; }.editor :global(.character-count) { display: block; text-align: right; color: #757575; font-size: 10px; margin-top: 8px; }.editor :global(.position-controls) { display: flex; gap: 6px; }.editor :global(.position-controls button) { font-size: 11px; padding: 8px; }.editor :global(.remove) { color: #b32d2e; margin-top: 20px; padding: 0; }
+        .editor :global(.sr-only) { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+        @media (max-width: 1150px) { .editor :global(.toolbar) { gap: 10px; }.editor :global(.actions) { gap: 8px; }.editor :global(.workspace.has-left.has-right) { grid-template-columns: 210px minmax(0,1fr) 260px; }.editor :global(.canvas-area) { padding: 0 14px 20px; }.editor :global(.document-type),.editor :global(.viewport svg) { display: none; }.editor :global(.live-link) { display: none; } }
+        @media (max-width: 850px) { .editor :global(.toolbar) { flex-wrap: wrap; padding-right: 10px; gap: 8px; }.editor :global(.brand) { min-width: 52px; height: 60px; margin-top: -12px; margin-bottom: -12px; }.editor :global(.tools) { gap: 0; }.editor :global(.document) { min-width: 100px; }.editor :global(.actions) { gap: 6px; }.editor :global(.viewport) { display: none; }.editor :global(.workspace.has-left.has-right), .editor :global(.workspace.has-left), .editor :global(.workspace.has-right) { grid-template-columns: minmax(0,1fr); }.editor :global(.outline),.editor :global(.inspector) { border: 0; border-bottom: 1px solid #ddd; }.editor :global(.outline) { order: 0; }.editor :global(.canvas-area) { order: 2; }.editor :global(.inspector) { order: 1; }.editor :global(.canvas) { min-height: 450px; }.editor :global(.canvas-top) { padding-top: 18px; }.editor :global(.block-library) { max-width: 400px; }.editor :global(.outline .panel-note) { margin: 8px 16px 16px; }.editor :global(.inspector fieldset) { display: grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); }.editor :global(.property-group) { border-right: 1px solid #eee; }.editor :global(.canvas-bottom) { flex-wrap: wrap; } }
+        @media (max-width: 540px) { .editor :global(.toolbar) { padding-left: 8px; }.editor :global(.brand),.editor :global(.separator),.editor :global(.document-type) { display: none; }.editor :global(.document) { flex: 1; }.editor :global(.document h1) { font-size: 12px; }.editor :global(.save-state) { display: block; }.editor :global(.actions) { width: 100%; padding-top: 6px; justify-content: flex-end; border-top: 1px solid #eee; }.editor :global(.viewport) { display: flex; margin-right: auto; }.editor :global(.viewport select) { width: 76px; margin: 0; padding: 8px 0; }.editor :global(.toolbar .square) { width: 30px; height: 32px; }.editor :global(.canvas-area) { padding: 0 8px 20px; }.editor :global(.canvas-bottom span:last-child) { display: none; } }
+        @media (prefers-reduced-motion: reduce) { .editor :global(.canvas) { transition: none; } }
+      
+.editor :global(.patterns-trigger) { padding: 8px; color: #555; font-size: 11px; }
+.editor :global(.library-tabs) { display: flex; gap: 16px; padding: 15px 16px; border-bottom: 1px solid #eee; font-size: 11px; }
+.editor :global(.library-tabs .current) { color: #039d55; font-weight: 600; }
+.editor :global(.group-filters) { display: flex; flex-wrap: wrap; gap: 5px; margin: 12px 14px 20px; }
+.editor :global(.group-filters button) { padding: 5px 8px; font-size: 10px; border-radius: 20px; background: #f5f6f5; color: #777; }
+.editor :global(.group-filters button.chosen) { background: #e7f4eb; color: #007a40; }
+.editor :global(.block-symbol) { font-size: 25px; font-weight: 400; color: #426551; line-height: 1.2; }
+.editor :global(.block-library) { gap: 7px; padding: 0 12px 15px; }
+.editor :global(.block-tile) { min-height: 105px; padding: 15px 7px; border: 1px solid #e6eae7; border-radius: 5px; }
+.editor :global(.block-tile:hover) { background: #f1f8f3; border-color: #b6d7c2; }
+.editor :global(.block-tile strong) { font-weight: 500; line-height: 1.5; }
+.editor :global(.block-name > span:first-child) { color: #557561; font-size: 17px; width: 20px; text-align: center; flex-shrink: 0; }
+.editor :global(.block-name > span:last-child) { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.editor :global(.block-name small) { font-size: 9px; color: #89968e; display: block; padding-top: 3px; }
+.editor :global(.outline),.editor :global(.inspector) { position: sticky; top: 72px; max-height: calc(100vh - 72px); overflow-y: auto; scrollbar-width: thin; align-self: start; }
+.editor :global(.floating-toolbar) { display: flex; align-items: center; gap: 6px; margin: 0 auto 14px; padding: 6px 10px; background: white; width: fit-content; max-width: 100%; border: 1px solid #d8e1db; border-radius: 5px; box-shadow: 0 3px 8px #00000008; font-size: 11px; flex-wrap: wrap; }
+.editor :global(.floating-toolbar > span) { font-size: 16px; color: #426551; }
+.editor :global(.floating-toolbar strong) { margin-right: 14px; font-weight: 500; }
+.editor :global(.floating-toolbar button) { font-size: 10px; padding: 6px 8px; }
+.editor :global(.floating-toolbar button:hover) { background: #f1f5f2; }
+.editor :global(.danger) { color: #b83d40; }
+.editor :global(.notices .error) { display: flex; gap: 15px; justify-content: space-between; }
+.editor :global(.field) { margin: 15px 0 12px; line-height: 1.6; }
+.editor :global(.field input),.editor :global(.field textarea),.editor :global(.field select) { margin-top: 8px; }
+.editor :global(.check-field) { display: flex; align-items: flex-start; gap: 10px; margin: 18px 0; font-size: 11px; line-height: 1.7; }
+.editor :global(.check-field input) { width: 15px !important; height: 15px; display: inline-block !important; margin: 3px 0 0 !important; accent-color: #039d55; flex-shrink: 0; padding: 0 !important; }
+.editor :global(.color-field) { display: flex; align-items: center; gap: 12px; }
+.editor :global(.color-field button) { margin-left: auto; font-size: 10px; color: #777; text-decoration: underline; }
+.editor :global(.media-field) { margin-top: 18px; }
+.editor :global(.media-field > img) { width: 100%; max-height: 150px; object-fit: cover; border-radius: 4px; margin-bottom: 10px; }
+.editor :global(.media-empty) { background: #f0f5ef; border: 1px dashed #c7d5c9; min-height: 115px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: #69816e; font-size: 26px; border-radius: 5px; padding: 15px; }
+.editor :global(.media-empty span) { font-size: 10px; font-weight: 400; text-align: center; }
+.editor :global(.upload-button) { cursor: pointer; background: #edf5ef; color: #007a40; padding: 9px 12px; text-align: center; border: 1px solid #c8decd; border-radius: 3px; font-size: 11px; display: block; }
+.editor :global(.upload-button input) { display: block; width: 100%; border: 0; font-size: 10px; padding: 6px 0 0; margin-top: 5px; background: transparent; }
+.editor :global(.item-editor) { border: 1px solid #dfe5e0; border-radius: 5px; margin-bottom: 9px; padding: 12px; }
+.editor :global(.item-editor summary) { font-weight: 500; font-size: 11px; line-height: 1.7; display: flex; align-items: flex-start; gap: 8px; }
+.editor :global(.item-editor summary > span) { color: #87978a; font-size: 9px; margin-top: 2px; }
+.editor :global(.item-controls) { display: flex; gap: 8px; border-top: 1px solid #eee; margin-top: 14px; padding-top: 10px; font-size: 10px; }
+.editor :global(.item-controls button:last-child) { margin-left: auto; }
+.editor :global(.property-group summary) { line-height: 1.7; }
+.editor :global(.property-group .field input[type=range]) { padding: 0; accent-color: #039d55; }
+.editor :global(.modal-backdrop) { position: fixed; inset: 0; background: #09271988; z-index: 20; display: flex; align-items: center; justify-content: center; padding: 30px; backdrop-filter: blur(5px); }
+.editor :global(.layout-dialog) { background: white; border-radius: 12px; padding: 30px; width: min(940px,100%); max-height: 90vh; overflow: auto; box-shadow: 0 20px 80px #0003; }
+.editor :global(.dialog-heading) { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.editor :global(.dialog-heading h2) { font-size: 25px; line-height: 1.3; letter-spacing: -.04em; }
+.editor :global(.dialog-heading .eyebrow) { color: #039d55; margin-bottom: 9px; }
+.editor :global(.dialog-copy) { max-width: 650px; font-size: 12px; color: #788078; line-height: 1.8; margin: 17px 0 26px; }
+.editor :global(.pattern-grid) { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 18px; }
+.editor :global(.pattern-grid article) { border: 1px solid #e2e9e2; border-radius: 8px; padding: 14px; }
+.editor :global(.pattern-grid h3) { font-size: 15px; margin: 16px 0 8px; }
+.editor :global(.pattern-grid p) { font-size: 11px; color: #777; line-height: 1.8; margin-bottom: 15px; }
+.editor :global(.pattern-grid article > span) { display: block; color: #78907e; font-size: 10px; margin-bottom: 16px; }
+.editor :global(.pattern-grid .primary) { width: 100%; font-size: 11px; }
+.editor :global(.pattern-preview) { background: #f6f8f3; height: 170px; padding: 13px; border: 1px solid #e7ece6; border-radius: 5px; }
+.editor :global(.mini-nav) { width: 70%; height: 5px; background: #aec9b4; margin-bottom: 14px; }
+.editor :global(.mini-hero) { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; height: 62px; margin-bottom: 15px; }
+.editor :global(.mini-hero i:first-child) { background: repeating-linear-gradient(0deg,transparent 0 8px,#58745e 8px 12px); height: 42px; margin-top: 7px; }
+.editor :global(.mini-hero i:last-child) { border-radius: 5px; background: linear-gradient(135deg,#dde9d3,#aec9a4); }
+.editor :global(.mini-cards) { display: flex; gap: 7px; }
+.editor :global(.mini-cards i) { flex: 1; height: 34px; background: #e1e9dc; border-radius: 3px; }
+.editor :global(.mini-footer) { background: #43785a; height: 8px; margin-top: 13px; border-radius: 2px; }
+.editor :global(.pattern-editorial) { background: #faf5ef; }.editor :global(.pattern-editorial .mini-hero i:last-child) { background: #d8c3ac; }.editor :global(.pattern-editorial .mini-cards i) { background: #eee0cf; }
+.editor :global(.pattern-service .mini-hero) { grid-template-columns: 1fr; }.editor :global(.pattern-service .mini-hero i:first-child) { max-width: 70%; }.editor :global(.pattern-service .mini-hero i:last-child) { display: none; }
+@media(max-width:1150px){ .editor :global(.patterns-trigger) { display:none; }.editor :global(.floating-toolbar strong) { margin-right:4px; }.editor :global(.floating-toolbar) { gap:3px; }.editor :global(.block-library) { gap:5px; padding:0 8px; } }
+@media(max-width:850px){ .editor :global(.outline),.editor :global(.inspector) { position:static; max-height:none; overflow:visible; }.editor :global(.block-library) { grid-template-columns:repeat(4,minmax(0,1fr)); max-width:100%; }.editor :global(.outline .panel-note) { margin-top:16px; }.editor :global(.pattern-grid) { grid-template-columns:1fr; }.editor :global(.pattern-grid article) { display:grid;grid-template-columns:140px 1fr;gap:0 16px; }.editor :global(.pattern-preview) { grid-row:span 5; }.editor :global(.layout-dialog) { padding:20px; }.editor :global(.modal-backdrop) { padding:14px; }.editor :global(.dialog-heading h2) { font-size:21px; } }
+@media(max-width:540px){ .editor :global(.block-library) { grid-template-columns:repeat(3,minmax(0,1fr)); }.editor :global(.floating-toolbar) { width:100%; justify-content:center; }.editor :global(.floating-toolbar strong) { font-size:10px; }.editor :global(.pattern-grid article) { display:block; }.editor :global(.pattern-preview) { height:160px; }.editor :global(.document) { max-width:160px; }.editor :global(.document h1) { white-space:nowrap; overflow:hidden;text-overflow:ellipsis; }.editor :global(.document-type) { display:none; }.editor :global(.canvas-top) { font-size:9px; }.editor :global(.support-banner) { font-size:11px; padding:10px; }.editor :global(.block-tile) { min-height:90px; } }

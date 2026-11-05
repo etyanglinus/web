@@ -21,7 +21,7 @@ import useCartItemUpdate from "api-manage/hooks/react-query/add-cart/useCartItem
 import useDeleteCartItem from "api-manage/hooks/react-query/add-cart/useDeleteCartItem";
 import { useAddToWishlist } from "api-manage/hooks/react-query/wish-list/useAddWishList";
 import { useWishListDelete } from "api-manage/hooks/react-query/wish-list/useWishListDelete";
-import { getAmountWithSign } from "helper-functions/CardHelpers";
+import { getAmountWithSign, getPriceParts } from "helper-functions/CardHelpers";
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
 import { haveRtlLanguages } from "components/header/top-navbar/language/rtlLanguageList";
 import { getGuestId } from "helper-functions/getToken";
@@ -80,6 +80,20 @@ import StoreVerifiedSVG from "../assets/StoreVerifiedSVG";
 import useIsVerifiedStoreEnabled from "api-manage/hooks/custom-hooks/useIsVerifiedStoreEnabled";
 import VariationModal from "components/home/module-wise-components/service/components/global/VariationModal";
 import { getServiceCardPricing } from "components/home/module-wise-components/service/components/common/ServiceCardPricing";
+
+const ProductPrice = ({ amount }) =>
+  getPriceParts(amount).map(({ value, isCurrency }, index) => (
+    <React.Fragment key={isCurrency ? "currency" : "amount"}>
+      {index > 0 && " "}
+      {isCurrency ? (
+        <span style={{ fontSize: "0.78em", fontWeight: 600, letterSpacing: "normal" }}>
+          {value}
+        </span>
+      ) : value}
+    </React.Fragment>
+  ));
+
+
 
 const FoodDetailModal = dynamic(() =>
   import("../../food-details/foodDetail-modal/FoodDetailModal"),
@@ -834,7 +848,7 @@ export const InfoSection = ({
               flexShrink: 0,
             }}
           >
-            {getAmountWithSign(displayPrice)}
+            <ProductPrice amount={displayPrice} />
           </Typography>
           {originalPrice > displayPrice && (
             <Typography
@@ -1046,7 +1060,7 @@ const PharmacyInfoSection = ({
                 fontVariantNumeric: "tabular-nums",
               }}
             >
-              {getAmountWithSign(displayPrice)}
+              <ProductPrice amount={displayPrice} />
             </Typography>
             {originalPrice > displayPrice && (
               <Typography
@@ -1397,7 +1411,7 @@ export const RentalInfoSection = ({
                 fontVariantNumeric: "tabular-nums",
               }}
             >
-              {getAmountWithSign(displayPrice)}
+              <ProductPrice amount={displayPrice} />
             </Typography>
             {originalPrice > displayPrice && (
               <Typography

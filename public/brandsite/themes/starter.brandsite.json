@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "title": "Your store name",
+  "description": "Fresh favourites, delivered by Fasta.",
+  "accent": "#039D55",
+  "motion": "rise",
+  "sections": [
+    "hero",
+    "catalog"
+  ]
+}

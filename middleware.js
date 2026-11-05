@@ -11,6 +11,8 @@ const excludeModuleRoutes = [
   "/app-redirect",
   "/maintainance",
   "/checkout",
+  "/brandsite",
+  "/api/brandsite",
   "/profile",
   "/about-us",
   "/cancellation-policy",
