@@ -156,9 +156,15 @@ const FastaFooter = ({ configData, landingPageData, bottomSpace = 0 }) => {
               </a>
             ))}
           </nav>
-          <div className={styles.help}>
-            <h2>Here to help</h2>
+          <nav aria-label="Help and FAQs">
+            <h2>Help & FAQs</h2>
+            <Link href={router.pathname === "/" ? "#fasta-faq" : "/#fasta-faq"}>
+              Frequently asked questions
+            </Link>
             <Link href="/help-and-support">Help & support ↗</Link>
+          </nav>
+          <div className={styles.contact}>
+            <h2>Contact us</h2>
             {configData?.email && (
               <a href={`mailto:${configData.email}`}>{configData.email}</a>
             )}
@@ -172,22 +178,22 @@ const FastaFooter = ({ configData, landingPageData, bottomSpace = 0 }) => {
                 {configData.address} ↗
               </button>
             )}
+            <section
+              className={styles.newsletter}
+              aria-labelledby="footer-newsletter-title"
+            >
+              <h2 id="footer-newsletter-title">
+                {landingPageData?.footer_section?.fixed_newsletter_title ||
+                  "Stay Connected with Fasta"}
+              </h2>
+              <p>
+                {landingPageData?.footer_section?.fixed_newsletter_sub_title ||
+                  "Get the latest offers, exciting updates and exclusive deals in your inbox."}
+              </p>
+              <Subscribe />
+            </section>
           </div>
         </div>
-        <details className={styles.newsletter}>
-          <summary>
-            {landingPageData?.footer_section?.fixed_newsletter_title ||
-              "Stay updated"}
-            <span aria-hidden="true">+</span>
-          </summary>
-          <div>
-            <p>
-              {landingPageData?.footer_section?.fixed_newsletter_sub_title ||
-                "Subscribe for Fasta news and updates."}
-            </p>
-            <Subscribe />
-          </div>
-        </details>
         <div className={styles.bottom}>
           <p>{configData?.footer_text || "Fasta Deliveries"}</p>
           <nav aria-label="Policies">
