@@ -1119,6 +1119,9 @@ const StoreCartSidebar = ({
     ...(moduleParam && { module: moduleParam }),
     ...(checkoutStoreId != null && { store_id: checkoutStoreId }),
     ...(storeDetails?.slug && { store_slug: storeDetails.slug }),
+    ...(typeof router.query.brandsite === "string" && router.query.brandsite === storeDetails?.slug
+      ? { brandsite: router.query.brandsite }
+      : {}),
   };
 
   const handleCheckout = () => {

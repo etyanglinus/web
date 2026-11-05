@@ -1,0 +1,35 @@
+{
+    on_demand_tls {
+        ask http://127.0.0.1:3017/api/brandsite/tls-permission
+    }
+    servers {
+        strict_sni_host on
+    }
+}
+
+https:// {
+    tls {
+        on_demand
+    }
+    header Strict-Transport-Security "max-age=31536000"
+    @assets path /_next/static/*
+    handle @assets {
+        reverse_proxy 127.0.0.1:3017 {
+            header_up -X-Fasta-Ingress
+        }
+    }
+    @storefront {
+        path /
+        method GET HEAD
+    }
+    handle @storefront {
+        rewrite * /brandsite/domain/{host}
+        reverse_proxy 127.0.0.1:3017 {
+            header_up Host {host}
+            header_up X-Fasta-Ingress {$BRANDSITE_INGRESS_SECRET}
+            header_up -Cookie
+            header_down -Set-Cookie
+        }
+    }
+    respond 404
+}

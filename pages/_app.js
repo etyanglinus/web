@@ -57,6 +57,7 @@ function MyApp(props) {
   } = props;
   const getLayout = Component.getLayout ?? ((page) => page);
   const { t } = useTranslation();
+  useScrollToTop();
 
   // Persist store
   let persistor = persistStore(store);
@@ -76,9 +77,15 @@ function MyApp(props) {
     }
   }, []);
 
+  // BrandSite has its own editor/storefront shell and server-scoped catalog.
+  // Marketplace guards must not redirect it or fetch customer subscription state.
+  if (props.router?.pathname?.startsWith("/brandsite/")) {
+    return <Component {...pageProps} />;
+  }
+
   return (
     <>
-      {useScrollToTop()}
+
       <CacheProvider value={emotionCache}>
         <QueryClientProvider client={queryClient}>
           <ReduxProvider store={store}>

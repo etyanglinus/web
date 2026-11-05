@@ -33,12 +33,12 @@ export const formatNumber = (value, fallbackDecimals = 2) => {
 //   return amount;
 // };
 
-export const getAmountWithSign = (amount, needDecimal = true) => {
-  if (amount == null || isNaN(Number(amount))) return "";
+export const getPriceParts = (amount, needDecimal = true) => {
+  if (amount == null || isNaN(Number(amount))) return [];
 
   const { configData } = store?.getState()?.configData || {};
   const decimals = configData?.digit_after_decimal_point ?? 2;
-  const symbol = configData?.currency_symbol || "";
+  const symbol = configData?.currency_symbol?.trim() || "";
   const direction = configData?.currency_symbol_direction || "left";
 
   // Function to format large numbers
@@ -52,10 +52,14 @@ export const getAmountWithSign = (amount, needDecimal = true) => {
   // Format the amount
   const formattedAmount = formatLargeNumber(Number(amount));
 
-  // Return amount with currency symbol
-  return direction === "left" ? `${symbol}${formattedAmount}` : `${formattedAmount}${symbol}`;
+  const currency = { value: symbol, isCurrency: true };
+  const price = { value: String(formattedAmount), isCurrency: false };
+  if (!symbol) return [price];
+  return direction === "left" ? [currency, price] : [price, currency];
 };
 
+export const getAmountWithSign = (amount, needDecimal = true) =>
+  getPriceParts(amount, needDecimal).map(({ value }) => value).join(" ");
 
 export const getDiscountedAmount = (
   price,
