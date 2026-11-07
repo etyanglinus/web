@@ -20,8 +20,13 @@ import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import { darkStyles, grayMapStyle } from "../mapColor.js";
 import ModalExtendShrink from "./ModalExtendShrink";
+import dynamic from "next/dynamic";
+import { reportGoogleMapsFailure, useMapProvider } from "./osm/mapProvider";
 
-const GoogleMapComponent = ({
+// OpenStreetMap version, loaded only when needed (Leaflet needs the browser).
+const OsmLocationPicker = dynamic(() => import("./osm/OsmLocationPicker"), { ssr: false });
+
+const GoogleMapsPicker = ({
   setDisablePickButton,
   setLocationEnabled,
   setLocation,
@@ -77,10 +82,13 @@ const GoogleMapComponent = ({
     [theme.palette.mode],
   );
 
-  const { isLoaded } = useJsApiLoader({
+  const { isLoaded, loadError } = useJsApiLoader({
     id: "google-map-script",
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAP_KEY,
   });
+  useEffect(() => {
+    if (loadError) reportGoogleMapsFailure(loadError?.message || "script load error");
+  }, [loadError]);
 
   const [isMounted, setIsMounted] = useState(false);
   const [mapSetup, setMapSetup] = useState(false);
@@ -432,6 +440,15 @@ const GoogleMapComponent = ({
   ) : (
     <></>
   );
+};
+
+/**
+ * Draws Google Maps, or OpenStreetMap when Google is unavailable (billing, quota, rejected key,
+ * no key, or the backend has switched to OpenStreetMap). Both take the same props.
+ */
+const GoogleMapComponent = (props) => {
+  const { provider } = useMapProvider();
+  return provider === "osm" ? <OsmLocationPicker {...props} /> : <GoogleMapsPicker {...props} />;
 };
 
 export default GoogleMapComponent;

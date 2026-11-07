@@ -24,6 +24,10 @@ import DeliveryManMapMarker from "../../parcel/DeliveryManMapMarker";
 import StoreIcon from "@mui/icons-material/Store";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
+import dynamic from "next/dynamic";
+import { reportGoogleMapsFailure, useMapProvider } from "../osm/mapProvider";
+
+const OsmLocationView = dynamic(() => import("../osm/OsmLocationView"), { ssr: false });
 
 const containerStyle = {
   width: "100%",
@@ -56,7 +60,7 @@ const ACTION = {
   setIsMounted: "setIsMounted",
   setMap: "setMap",
 };
-const MapComponent = (props) => {
+const GoogleLocationView = (props) => {
   const {
     latitude,
     longitude,
@@ -118,10 +122,13 @@ const MapComponent = (props) => {
     }),
     []
   );
-  const { isLoaded } = useJsApiLoader({
+  const { isLoaded, loadError } = useJsApiLoader({
     id: "google-map-script",
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAP_KEY,
   });
+  useEffect(() => {
+    if (loadError) reportGoogleMapsFailure(loadError?.message || "script load error");
+  }, [loadError]);
 
   const onLoad = useCallback(function callback(map) {
     dispatch({ type: ACTION.setMap, payload: map });
@@ -489,6 +496,12 @@ const MapComponent = (props) => {
   );
 };
 
-MapComponent.propTypes = {};
+GoogleLocationView.propTypes = {};
+
+/** Google Maps, or OpenStreetMap when Google is unavailable. Same props for both. */
+const MapComponent = (props) => {
+  const { provider } = useMapProvider();
+  return provider === "osm" ? <OsmLocationView {...props} /> : <GoogleLocationView {...props} />;
+};
 
 export default MapComponent;
