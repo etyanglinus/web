@@ -1,5 +1,6 @@
 import * as Yup from "yup";
 import { useTranslation } from "react-i18next";
+import { kenyanPhoneTest } from "utils/kenyanPhone";
 
 const SignUpValidation = () => {
   const { t } = useTranslation();
@@ -10,7 +11,7 @@ const SignUpValidation = () => {
       .email(t("Must be a valid email"))
       .max(255)
       .required(t("Email is required")),
-    phone: Yup.string()
+    phone: Yup.string().test(...kenyanPhoneTest(t))
       .required(t("Please give a phone number"))
       .min(10, "Number must be 10 digits"),
     password: Yup.string()

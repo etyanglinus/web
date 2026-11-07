@@ -8,6 +8,7 @@ import { usePostRegisterInfo } from "../../../../api-manage/hooks/react-query/au
 import { CustomStackFullWidth } from "../../../../styled-components/CustomStyles.style";
 import CustomAlert from "../../../alert/CustomAlert";
 import CustomPhoneInput from "../../../custom-component/CustomPhoneInput";
+import { kenyanPhoneTest } from "utils/kenyanPhone";
 
 const PhoneInputForm = (props) => {
 	const {
@@ -25,7 +26,7 @@ const PhoneInputForm = (props) => {
 			phone: "",
 		},
 		validationSchema: Yup.object({
-			phone: Yup.string()
+			phone: Yup.string().test(...kenyanPhoneTest(t))
 				.required(t("Please give a phone number"))
 				.min(10, "Number must be 10 digits"),
 		}),

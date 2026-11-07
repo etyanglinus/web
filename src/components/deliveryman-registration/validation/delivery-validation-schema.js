@@ -1,4 +1,5 @@
 import * as Yup from "yup";
+import { kenyanPhoneTest } from "utils/kenyanPhone";
 
 const PROFILE_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const IDENTITY_IMAGE_TYPES =  ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -27,7 +28,7 @@ const deliveryManValidationSchema = () => {
       .email("Invalid email address")
       .required("Email is required"),
 
-    phone: Yup.string().required("Phone number is required"),
+    phone: Yup.string().test(...kenyanPhoneTest()).required("Phone number is required"),
 
     password: Yup.string()
       .required("Password is required")
