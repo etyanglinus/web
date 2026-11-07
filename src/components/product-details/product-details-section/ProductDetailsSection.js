@@ -1,3 +1,4 @@
+import useSellerAnalytics from '../../brandsite/useSellerAnalytics';
 import { Grid, useMediaQuery, useTheme } from "@mui/material";
 import { CustomStackFullWidth } from "styled-components/CustomStyles.style";
 import { Box } from "@mui/system";
@@ -60,6 +61,7 @@ const ProductDetailsSection = ({
   isWishlisted: isWishlistedProp,
 }) => {
   const { t } = useTranslation();
+  useSellerAnalytics(productDetailsData?.store_id, false, 'product_view', 'web');
   const reduxDispatch = useDispatch();
   const [isWishlistedInternal, setIsWishlistedInternal] = useState(false);
   const { mutate: addFavoriteMutation } = useAddToWishlist();
