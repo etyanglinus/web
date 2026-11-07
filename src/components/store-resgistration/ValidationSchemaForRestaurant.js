@@ -2,6 +2,7 @@ import React from "react";
 
 import * as Yup from "yup";
 import { useTranslation } from "react-i18next";
+import { kenyanPhoneTest } from "utils/kenyanPhone";
 
 const IMAGE_SUPPORTED_FORMATS = [
 	"image/jpg",
@@ -36,7 +37,7 @@ const ValidationSchemaForRestaurant = () => {
 		module_id: Yup.string().required(t("Module is required")),
 		f_name: Yup.string().required(t("Name is required")),
 		l_name: Yup.string().required(t("Last name required")),
-		phone: Yup.string().required(t("Phone number required")),
+		phone: Yup.string().test(...kenyanPhoneTest(t)).required(t("Phone number required")),
 		min_delivery_time: Yup.string().required(t("Minimum Delivery Time")),
 		max_delivery_time: Yup.string().required(t("Maximum Delivery Time")),
 		delivery_time_type: Yup.string().required(

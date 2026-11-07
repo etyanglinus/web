@@ -1,11 +1,12 @@
 import { useTranslation } from "react-i18next";
 import * as Yup from "yup";
+import { kenyanPhoneTest } from "utils/kenyanPhone";
 
 const ValidationSechemaProfile = () => {
   const { t } = useTranslation();
   return Yup.object({
     name: Yup.string().required(t("name is required")),
-    phone: Yup.string().required(t("phone number required")),
+    phone: Yup.string().test(...kenyanPhoneTest(t)).required(t("phone number required")),
     email: Yup.string()
       .email(t("Must be a valid email"))
       .max(255)

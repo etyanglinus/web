@@ -11,6 +11,11 @@ import { RTL } from "components/rtl";
 import { checkMaintenanceMode } from "../src/utils/serverSidePropsHelper";
 import { getApiContent } from "../src/api-manage/getApiContent";
 import { normalizeLanguage } from "../src/language/localePolicy";
+import { isDemoText } from "../src/components/landing-page/kenya/landingContent";
+
+const DEFAULT_TITLE = "Fasta Deliveries | Groceries, food & essentials delivered in Kenya";
+const DEFAULT_DESCRIPTION =
+  "Order groceries, meals, pharmacy items and parcels from local stores near you. Pay with M-Pesa, card or cash on delivery and track your rider live.";
 
 const Root = (props) => {
   const { configData, landingPageData } = props;
@@ -45,9 +50,17 @@ const Root = (props) => {
         image={landingPageData?.meta_image || configData?.fav_icon_full_url}
         businessName={configData?.business_name}
         configData={configData}
-        title={landingPageData?.meta_title || configData?.business_name}
+        title={
+          !isDemoText(landingPageData?.meta_title)
+            ? landingPageData.meta_title
+            : DEFAULT_TITLE
+        }
         description={
-          landingPageData?.meta_description || configData?.meta_description
+          !isDemoText(landingPageData?.meta_description)
+            ? landingPageData.meta_description
+            : !isDemoText(configData?.meta_description)
+            ? configData.meta_description
+            : DEFAULT_DESCRIPTION
         }
       />
       {resolvedLandingPageData && (
