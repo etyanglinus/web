@@ -1,5 +1,6 @@
 import "../src/styles/globals.css";
 import "../src/styles/nprogress.css";
+import "leaflet/dist/leaflet.css";
 import "@flaticon/flaticon-uicons/css/all/all.css";
 import { CacheProvider } from "@emotion/react";
 import { Provider as ReduxProvider } from "react-redux";
