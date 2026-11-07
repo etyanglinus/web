@@ -5,6 +5,13 @@ on:
     branches:
       - main
 
+# One production deploy at a time. If two PRs are merged close together, the second deploy waits
+# for the first to finish instead of overwriting the same files on the server at the same time
+# (that race is what failed run 42375716324). Never cancel a deploy halfway through.
+concurrency:
+  group: production-web-deploy
+  cancel-in-progress: false
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -36,7 +43,7 @@ jobs:
           cp -R node_modules .next/standalone/
           
           # Package everything into the deploy archive
-          tar -czf standalone-deploy.tar.gz -C .next/standalone .
+          tar -czf fasta-web-${{ github.run_id }}.tar.gz -C .next/standalone .
 
       - name: Upload standalone app to cPanel via SCP
         uses: appleboy/scp-action@v0.1.7
@@ -45,7 +52,7 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          source: "standalone-deploy.tar.gz"
+          source: "fasta-web-${{ github.run_id }}.tar.gz"
           target: "/home/petrosup/fastadeliveries.co.ke/web/"
 
       - name: Extract app and restart cPanel Node.js app
@@ -58,7 +65,11 @@ jobs:
           script: |
             set -e
             cd /home/petrosup/fastadeliveries.co.ke/web/
-            tar -xzf standalone-deploy.tar.gz
-            rm standalone-deploy.tar.gz
+            # Each run uploads its own uniquely named archive, so runs can't delete each other's file.
+            tar -xzf fasta-web-${{ github.run_id }}.tar.gz
+            rm -f fasta-web-${{ github.run_id }}.tar.gz
+            # Clean up archives left by older runs (including the old fixed name).
+            rm -f standalone-deploy.tar.gz
+            find . -maxdepth 1 -name 'fasta-web-*.tar.gz' -mmin +60 -delete
             mkdir -p tmp
             touch tmp/restart.txt
