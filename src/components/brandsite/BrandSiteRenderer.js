@@ -1,3 +1,4 @@
+import useSellerAnalytics from './useSellerAnalytics';
 import styles from './BrandSiteRenderer.module.css';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -5,6 +6,7 @@ import { normalizeTheme, FONT_OPTIONS } from './blocks';
 
 export default function BrandSite({catalog,slug,page=1,preview=false,selectedSection,marketplaceOrigin}) {
   const {store,items=[],has_more:hasMore}=catalog;
+  useSellerAnalytics(store.id, preview);
   const theme=normalizeTheme(catalog.theme,store);
   const marketRoute={pathname:`/store/${store.id}`,query:{module:store.module_id,brandsite:slug}};
   const market=marketplaceOrigin ? `${marketplaceOrigin}${marketRoute.pathname}?${new URLSearchParams(marketRoute.query)}` : marketRoute;

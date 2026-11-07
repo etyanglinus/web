@@ -1,3 +1,4 @@
+import useSellerAnalytics from '../brandsite/useSellerAnalytics';
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Box,
@@ -81,6 +82,7 @@ const parseZoneIdsFromStorageValue = (rawZoneIds) => {
 };
 
 const StoreDetails = ({ storeDetails, configData }) => {
+  useSellerAnalytics(storeDetails?.id, false, 'page_view', 'web');
   useScrollToTop();
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
