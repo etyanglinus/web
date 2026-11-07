@@ -28,6 +28,13 @@ const icons = {
 };
 const validUrl = (value) =>
   typeof value === "string" && /^https?:\/\//i.test(value);
+// Public status page (Fasta Status), hosted separately so it stays up when Fasta is down.
+// Configure per environment with NEXT_PUBLIC_STATUS_URL; set it to "off" to hide the link.
+const statusUrl = (() => {
+  const url =
+    process.env.NEXT_PUBLIC_STATUS_URL ?? "https://status.fastadeliveries.co.ke";
+  return /^https:\/\//i.test(url) ? url : null;
+})();
 export const getFooterAppLinks = (data) => {
   const links = data?.user_app_download_section?.download_user_app_links;
   return [
@@ -202,6 +209,11 @@ const FastaFooter = ({ configData, landingPageData, bottomSpace = 0 }) => {
                 {item.label}
               </Link>
             ))}
+            {statusUrl && (
+              <a href={statusUrl} target="_blank" rel="noopener noreferrer">
+                System status
+              </a>
+            )}
           </nav>
         </div>
       </div>
